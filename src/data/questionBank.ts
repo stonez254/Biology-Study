@@ -1,8 +1,9 @@
 import { questionSeeds, type QuestionSeed } from "./questionSeeds";
 import { deepQuestionSeeds } from "./questionSeedsDeep";
+import { foundationQuestionSeeds } from "./questionSeedsFoundations";
 import { expandedQuestionSeeds } from "./questionSeedsExtended";
 
-export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds];
+export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds];
 
 const lessonIds = new Set([
   "cellular-energy",
@@ -15,6 +16,12 @@ const lessonIds = new Set([
   "nervous-system-basics",
   "genetics-foundations",
   "homeostasis-feedback",
+  "biology-foundations",
+  "chemistry-of-life",
+  "photosynthesis-plants",
+  "microbiology-viruses",
+  "evolution-population-genetics",
+  "ecology-ecosystems",
 ]);
 const questionIds = new Set<string>();
 
