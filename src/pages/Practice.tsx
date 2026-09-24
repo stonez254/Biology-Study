@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { questions, shuffleQuestions, type Question } from "../data/questions";
+import { questions, type Question } from "../data/questions";
+import { selectPracticeQuestions } from "../data/questionSelector";
 
 type Props = { onExit: () => void };
 
@@ -43,7 +44,7 @@ export default function Practice({ onExit }: Props) {
     const recent = new Set(getRecentIds());
     const freshPool = pool.filter(question => !recent.has(question.id));
     const source = freshPool.length >= Math.min(size, pool.length) ? freshPool : [...freshPool, ...pool.filter(question => recent.has(question.id))];
-    const chosen = shuffleQuestions(source, Math.min(size, pool.length));
+    const chosen = selectPracticeQuestions(source, Math.min(size, pool.length));
     rememberQuestionIds(chosen.map(question => question.id));
     setSession(chosen);
     setCurrent(0);
