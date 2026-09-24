@@ -1,8 +1,16 @@
 import type { Question } from "./questions";
 
 type Difficulty = Question["difficulty"];
+export type QuestionType = NonNullable<Question["questionType"]>;
 
 const DIFFICULTY_ORDER: Difficulty[] = ["Easy", "Medium", "Hard"];
+const QUESTION_TYPE_ORDER: QuestionType[] = [
+  "concept",
+  "application",
+  "scenario",
+  "identification",
+  "calculation",
+];
 
 function randomize<T>(items: T[]): T[] {
   const result = [...items];
@@ -11,6 +19,25 @@ function randomize<T>(items: T[]): T[] {
     [result[i], result[j]] = [result[j], result[i]];
   }
   return result;
+}
+
+function inferQuestionType(question: Question): QuestionType {
+  if (question.questionType) return question.questionType;
+
+  const prompt = question.prompt.toLowerCase();
+  if (/calculate|how many|percentage|ratio|rate|concentration|probability|frequency|volume|mass|molar|equation|value/.test(prompt)) {
+    return "calculation";
+  }
+  if (/identify|which structure|which organ|which tissue|which cell|where does|where is|what organelle/.test(prompt)) {
+    return "identification";
+  }
+  if (/a patient|a person|a cell|a tissue|a scientist|a researcher|during|after|before|if |when |case|observ/.test(prompt)) {
+    return "scenario";
+  }
+  if (/why|how does|what happens|effect|advantage|function|role|define|meaning/.test(prompt)) {
+    return "application";
+  }
+  return "concept";
 }
 
 function selectBalanced(
@@ -81,12 +108,44 @@ function selectBalanced(
   return randomize(chosen);
 }
 
+function selectTypeBalanced(pool: Question[], count: number): Question[] {
+  const target = Math.min(count, pool.length);
+  if (!target) return [];
+
+  const buckets = Object.fromEntries(
+    QUESTION_TYPE_ORDER.map(type => [
+      type,
+      randomize(pool.filter(question => inferQuestionType(question) === type)),
+    ]),
+  ) as Record<QuestionType, Question[]>;
+
+  const chosen: Question[] = [];
+  const used = new Set<string>();
+
+  for (let index = 0; index < target; index += 1) {
+    const preferredType = QUESTION_TYPE_ORDER[index % QUESTION_TYPE_ORDER.length];
+    const fallbackTypes = randomize(QUESTION_TYPE_ORDER.filter(type => type !== preferredType));
+    const types = [preferredType, ...fallbackTypes];
+
+    for (const type of types) {
+      const question = buckets[type].find(item => !used.has(item.id));
+      if (!question) continue;
+      chosen.push(question);
+      used.add(question.id);
+      break;
+    }
+  }
+
+  return randomize(chosen);
+}
+
 export function selectRATQuestions(
   lessonQuestions: Question[],
   count: number,
   recentIds: Iterable<string> = [],
 ): Question[] {
-  return selectBalanced(lessonQuestions, count, { Easy: 4, Medium: 4, Hard: 2 }, recentIds);
+  const balanced = selectBalanced(lessonQuestions, count, { Easy: 4, Medium: 4, Hard: 2 }, recentIds);
+  return selectTypeBalanced(balanced, balanced.length);
 }
 
 export function selectCATQuestions(
@@ -107,7 +166,6 @@ export function selectCATQuestions(
   const fresh = relevant.filter(q => !recent.has(q.id));
   const source = fresh.length >= target ? fresh : [...fresh, ...relevant.filter(q => recent.has(q.id))];
 
-  // Spread CAT coverage across lessons first, then balance difficulty.
   const byLesson = new Map<string, Question[]>();
   for (const question of randomize(source)) {
     const list = byLesson.get(question.lessonId) ?? [];
@@ -132,12 +190,13 @@ export function selectCATQuestions(
     }
   }
 
-  return selectBalanced(
+  const difficultyBalanced = selectBalanced(
     lessonSelection,
     target,
     { Easy: 6, Medium: 8, Hard: 6 },
     [],
   );
+  return selectTypeBalanced(difficultyBalanced, difficultyBalanced.length);
 }
 
 export function selectPracticeQuestions(
@@ -152,5 +211,5 @@ export function selectPracticeQuestions(
   const fresh = pool.filter(q => !recent.has(q.id));
   const source = fresh.length >= target ? fresh : [...fresh, ...pool.filter(q => recent.has(q.id))];
 
-  return randomize(source).slice(0, target);
+  return selectTypeBalanced(source, target);
 }
