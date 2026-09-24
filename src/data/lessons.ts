@@ -1,4 +1,4 @@
-import { getQuestionCountForLesson } from "./questionBank";
+import { getQuestionCountForLesson, getQuestionsForLesson } from "./questionBank";
 
 export type LessonSection = {
   label: string;
@@ -16,6 +16,7 @@ export type Lesson = {
   sections: LessonSection[];
   reference: string;
   questionCount: number;
+  bankFocus: string[];
 };
 
 const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
@@ -173,3 +174,14 @@ export const lessons: Lesson[] = lessonDefinitions.map(lesson => ({
 
 export const LESSON_IDS = lessons.map(lesson => lesson.id);
 export const ACTIVE_LESSONS = lessons.filter(lesson => lesson.questionCount >= 10);
+
+
+export function getLessonBankSummary(lessonId: string) {
+  const bank = getQuestionsForLesson(lessonId);
+  return {
+    total: bank.length,
+    easy: bank.filter(question => question.difficulty === "Easy").length,
+    medium: bank.filter(question => question.difficulty === "Medium").length,
+    hard: bank.filter(question => question.difficulty === "Hard").length,
+  };
+}
