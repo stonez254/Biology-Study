@@ -170,3 +170,16 @@ h1,h2,h3,p { margin-top: 0; } h1 { margin-bottom: 0; font-size: clamp(24px,3vw,3
 :root[data-theme="light"] .fact-reference small{color:#667774}
 @media(max-width:680px){.leaf-field{opacity:.3}.nav-item{min-height:42px}.nav-icon{width:27px;height:27px}.typing-fact{min-height:115px}}
 @media(prefers-reduced-motion:reduce){.leaf-field span,.typing-caret{animation:none}.leaf-field span{opacity:.22}}
+
+/* Fixed study navigation + reliable leaf animation on every screen size */
+.sidebar{position:sticky;top:0;height:100vh;max-height:100vh;overflow-y:auto;z-index:20}
+.topbar{position:sticky;top:0;z-index:19;background:rgba(7,19,18,.94);backdrop-filter:blur(12px)}
+:root[data-theme="light"] .topbar{background:rgba(243,248,247,.94)}
+.leaf-field{z-index:30;position:fixed;width:100vw;height:100vh;inset:0;will-change:transform}
+.leaf-field span{display:block;will-change:transform,top,left;animation-name:falling-leaf!important;animation-play-state:running!important}
+@media(max-width:680px){
+ .sidebar{position:sticky;top:0;height:auto;max-height:none;overflow:visible;z-index:20}
+ .topbar{top:0;z-index:19}
+ .leaf-field{display:block;opacity:.55;z-index:30;pointer-events:none}
+ .leaf-field span{animation-duration:calc(var(--leaf-duration) * .8)!important}
+}
