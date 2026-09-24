@@ -1,4 +1,5 @@
 import type { Question } from "./questions";
+import { getAccount } from "./account";
 import { ACTIVE_LESSONS } from "./lessons";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
@@ -20,9 +21,11 @@ export type SavedCAT = SavedAssessment;
 export type SavedRevision = Omit<SavedAssessment, "secondsLeft">;
 
 const PROGRESS_KEY="biology-study:progress", RAT_KEY="biology-study:active-rat", CAT_KEY="biology-study:active-cat", REVISION_KEY="biology-study:active-revision";
+function scopedKey(key:string){const account=getAccount();return account?`${key}:${account.id}`:key;}
+function readScoped<T>(key:string,fallback:T):T{const account=getAccount();const keyForAccount=scopedKey(key);const existing=localStorage.getItem(keyForAccount);if(existing)return read<T>(keyForAccount,fallback);if(account&&key===PROGRESS_KEY){const legacy=localStorage.getItem(PROGRESS_KEY);if(legacy){localStorage.setItem(keyForAccount,legacy);localStorage.removeItem(PROGRESS_KEY);return read<T>(keyForAccount,fallback);}}return fallback;}
 const defaultProgress: StudyProgress={points:0,streak:0,lastStudyDate:null,attempts:[],missedQuestionIds:[],revisionAttempts:[],lessonReadDate:null,lessonReadId:null,ratRetakeDate:null,completedLessonIds:[],lessonHistory:[],practiceSessions:[]};
 function read<T>(key:string,fallback:T):T{try{const v=localStorage.getItem(key);return v?JSON.parse(v) as T:fallback;}catch{return fallback;}}
-export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress>>(PROGRESS_KEY,defaultProgress);return{
+export function getProgress():StudyProgress{const raw=readScoped<Partial<StudyProgress>>(PROGRESS_KEY,defaultProgress);return{
   points:raw.points??0,streak:raw.streak??0,lastStudyDate:raw.lastStudyDate??null,
   attempts:(raw.attempts??[]).map((a:any)=>({...a,type:a.type??"RAT",questionIds:a.questionIds??[],correctQuestionIds:a.correctQuestionIds??[]})),
   missedQuestionIds:raw.missedQuestionIds??[],revisionAttempts:raw.revisionAttempts??[],
@@ -30,7 +33,7 @@ export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[],
   practiceSessions:(raw.practiceSessions??[]).map((s:any)=>({...s,questionIds:s.questionIds??[],correctQuestionIds:s.correctQuestionIds??[],incorrectQuestionIds:s.incorrectQuestionIds??[],timedOutQuestionIds:s.timedOutQuestionIds??[]}))
 };}
-export function saveProgress(progress:StudyProgress){localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}
+export function saveProgress(progress:StudyProgress){localStorage.setItem(scopedKey(PROGRESS_KEY),JSON.stringify(progress));}
 export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
 function localDateKey(date=new Date()){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");}
 function dateAtMidnight(dateKey:string){const [year,month,day]=dateKey.split("-").map(Number);return new Date(year,month-1,day);}
@@ -112,13 +115,13 @@ export function recordRevisionAttempt(result:Omit<RevisionAttempt,"id"|"complete
  missedQuestionIds:progress.missedQuestionIds.filter(id=>!mastered.has(id)),
  revisionAttempts:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.revisionAttempts].slice(0,100)};saveProgress(next);return next;
 }
-export function saveActiveRAT(saved:SavedRAT){localStorage.setItem(RAT_KEY,JSON.stringify(saved));}
-export function getActiveRAT():SavedRAT|null{try{const r=localStorage.getItem(RAT_KEY);return r?JSON.parse(r):null;}catch{return null;}}
-export function clearActiveRAT(){localStorage.removeItem(RAT_KEY);}
-export function saveActiveCAT(saved:SavedCAT){localStorage.setItem(CAT_KEY,JSON.stringify(saved));}
-export function getActiveCAT():SavedCAT|null{try{const r=localStorage.getItem(CAT_KEY);return r?JSON.parse(r):null;}catch{return null;}}
-export function clearActiveCAT(){localStorage.removeItem(CAT_KEY);}
-export function saveActiveRevision(saved:SavedRevision){localStorage.setItem(REVISION_KEY,JSON.stringify(saved));}
-export function getActiveRevision():SavedRevision|null{try{const r=localStorage.getItem(REVISION_KEY);return r?JSON.parse(r):null;}catch{return null;}}
-export function clearActiveRevision(){localStorage.removeItem(REVISION_KEY);}
+export function saveActiveRAT(saved:SavedRAT){localStorage.setItem(scopedKey(RAT_KEY),JSON.stringify(saved));}
+export function getActiveRAT():SavedRAT|null{try{const r=localStorage.getItem(scopedKey(RAT_KEY));return r?JSON.parse(r):null;}catch{return null;}}
+export function clearActiveRAT(){localStorage.removeItem(scopedKey(RAT_KEY));}
+export function saveActiveCAT(saved:SavedCAT){localStorage.setItem(scopedKey(CAT_KEY),JSON.stringify(saved));}
+export function getActiveCAT():SavedCAT|null{try{const r=localStorage.getItem(scopedKey(CAT_KEY));return r?JSON.parse(r):null;}catch{return null;}}
+export function clearActiveCAT(){localStorage.removeItem(scopedKey(CAT_KEY));}
+export function saveActiveRevision(saved:SavedRevision){localStorage.setItem(scopedKey(REVISION_KEY),JSON.stringify(saved));}
+export function getActiveRevision():SavedRevision|null{try{const r=localStorage.getItem(scopedKey(REVISION_KEY));return r?JSON.parse(r):null;}catch{return null;}}
+export function clearActiveRevision(){localStorage.removeItem(scopedKey(REVISION_KEY));}
 export function hydrateQuestions(saved:SavedAssessment|SavedRevision,bank:Question[]){const byId=new Map(bank.map(q=>[q.id,q]));return saved.questionIds.map(id=>byId.get(id)).filter((q):q is Question=>Boolean(q));}
