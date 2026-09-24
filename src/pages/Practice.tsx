@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { questions, type Question } from "../data/questions";
 import { selectPracticeQuestions } from "../data/questionSelector";
 import { getProgress, recordPracticeSession, type StudyProgress } from "../data/progress";
@@ -43,6 +43,7 @@ export default function Practice({ onExit, onProgress }: Props) {
   const [maxCombo, setMaxCombo] = useState(0);
   const [finished, setFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
+  const recordedSession = useRef(false);
 
   const pool = useMemo(() => questions.filter(q =>
     (topic === "All" || q.topic === topic) &&
@@ -114,6 +115,7 @@ export default function Practice({ onExit, onProgress }: Props) {
     setTimedOutQuestionIds([]);
     setCombo(0);
     setFinished(false);
+    recordedSession.current = false;
     setTimeLeft(10);
   };
 
@@ -158,6 +160,24 @@ export default function Practice({ onExit, onProgress }: Props) {
     setCurrent(v => v + 1);
     setAnswer(null);
   };
+
+  useEffect(() => {
+    if (!finished || recordedSession.current || !session.length) return;
+    recordedSession.current = true;
+    const result = recordPracticeSession({
+      total: session.length,
+      correct,
+      accuracy: Math.round(correct / session.length * 100),
+      maxCombo,
+      questionIds: session.map(question => question.id),
+      correctQuestionIds,
+      incorrectQuestionIds,
+      timedOutQuestionIds,
+      topic: topic === "All" ? "Mixed" : topic,
+      difficulty: difficulty === "All" ? "Mixed" : difficulty,
+    });
+    onProgress?.(result);
+  }, [finished, session, correct, maxCombo, correctQuestionIds, incorrectQuestionIds, timedOutQuestionIds, topic, difficulty, onProgress]);
 
   useEffect(() => {
     if (answer !== -1) return;
@@ -214,6 +234,28 @@ export default function Practice({ onExit, onProgress }: Props) {
 
   if (finished) {
     const accuracy = Math.round(correct / session.length * 100);
+    const incorrect = incorrectQuestionIds.length;
+    const timedOut = timedOutQuestionIds.length;
+    const category = (key: "topic" | "difficulty" | "questionType") => {
+      const rows = new Map<string, { total: number; correct: number }>();
+      for (const question of session) {
+        const value = key === "topic" ? question.topic : key === "difficulty" ? question.difficulty : question.questionType ?? "concept";
+        const row = rows.get(value) ?? { total: 0, correct: 0 };
+        row.total += 1;
+        if (correctQuestionIds.includes(question.id)) row.correct += 1;
+        rows.set(value, row);
+      }
+      return Array.from(rows.entries()).map(([name, row]) => ({
+        name,
+        accuracy: Math.round(row.correct / row.total * 100),
+        total: row.total,
+      })).sort((a, b) => a.accuracy - b.accuracy);
+    };
+    const topicBreakdown = category("topic");
+    const typeBreakdown = category("questionType");
+    const difficultyBreakdown = category("difficulty");
+    const weakest = [...topicBreakdown].filter(row => row.total >= 1).slice(0, 3);
+
     return <div className="content">
       <div className="result-card practice-result">
         <span className={accuracy >= 70 ? "badge success" : "badge warning"}>{accuracy >= 70 ? "GOOD SESSION" : "KEEP PRACTISING"}</span>
@@ -221,11 +263,26 @@ export default function Practice({ onExit, onProgress }: Props) {
         <p>You reached {accuracy}% accuracy. Practice is deliberately separate from assessment scoring.</p>
         <div className="result-grid">
           <div><strong>{accuracy}%</strong><span>Accuracy</span></div>
-          <div><strong>{session.length}</strong><span>Questions</span></div>
+          <div><strong>{incorrect}</strong><span>Incorrect</span></div>
+          <div><strong>{timedOut}</strong><span>Timed out</span></div>
           <div><strong>{maxCombo}</strong><span>Best combo</span></div>
+        </div>
+        <div className="practice-result-breakdown">
+          <h3>Performance breakdown</h3>
+          <div className="result-grid">
+            <div><strong>{topicBreakdown.find(row => row.accuracy === Math.max(...topicBreakdown.map(r => r.accuracy)))?.accuracy ?? 0}%</strong><span>Strongest topic</span></div>
+            <div><strong>{weakest[0]?.accuracy ?? 0}%</strong><span>Weakest topic</span></div>
+            <div><strong>{typeBreakdown[0]?.accuracy ?? 0}%</strong><span>Weakest question type</span></div>
+            <div><strong>{difficultyBreakdown[0]?.accuracy ?? 0}%</strong><span>Weakest difficulty</span></div>
+          </div>
+        </div>
+        <div className="practice-breakdown-list">
+          <h3>Topics to revisit</h3>
+          {weakest.length ? weakest.map(row => <div key={row.name}><span>{row.name}</span><strong>{row.accuracy}% <small>({row.total})</small></strong></div>) : <p>No weak topic identified yet.</p>}
         </div>
         <div className="result-actions">
           <button className="secondary-button" onClick={onExit}>Back to dashboard</button>
+          <button className="secondary-button" onClick={() => { setMode("Weak Areas"); start(); }}>Practice weak areas</button>
           <button className="primary-button" onClick={start}>Practice again</button>
         </div>
       </div>
