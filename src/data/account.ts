@@ -51,7 +51,7 @@ const ACCOUNT_DATA_KEYS = [
 ] as const;
 
 export function clearAccountStudyData(accountId: string): void {
-  for (const key of ACCOUNT_DATA_KEYS) localStorage.removeItem(\`${key}:${accountId}\`);
+  for (const key of ACCOUNT_DATA_KEYS) localStorage.removeItem(`${key}:${accountId}`);
   localStorage.removeItem("biology-study:progress");
   localStorage.removeItem("biology-study:nodes");
   localStorage.removeItem("biology-study:validation-queue");
