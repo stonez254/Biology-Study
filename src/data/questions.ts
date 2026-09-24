@@ -171,6 +171,56 @@ export const questions: Question[] = [
     prompt: "Which structure connects the two cerebral hemispheres?", options: ["Corpus callosum", "Medulla oblongata", "Pituitary gland"], answer: 0,
     explanation: "The corpus callosum is a large bundle of commissural fibers connecting the cerebral hemispheres.", reference: "Gray's Anatomy",
   },
+  {
+    id:"bio-031",lessonId:"human-tissues",topic:"Histology",difficulty:"Easy",
+    prompt:"Which tissue forms a protective covering over many external body surfaces?",options:["Epithelial tissue","Nervous tissue","Adipose tissue"],answer:0,
+    explanation:"Epithelial tissue forms coverings and linings and provides protective barriers.",reference:"Junqueira's Basic Histology",
+  },
+  {
+    id:"bio-032",lessonId:"human-tissues",topic:"Histology",difficulty:"Medium",
+    prompt:"Which feature best describes simple squamous epithelium?",options:["A single thin layer of flattened cells","Many layers of columnar cells","A single layer of muscle fibers"],answer:0,
+    explanation:"Simple squamous epithelium consists of one thin layer of flattened cells and is suited to diffusion and filtration.",reference:"Junqueira's Basic Histology",
+  },
+  {
+    id:"bio-033",lessonId:"human-tissues",topic:"Cell Biology",difficulty:"Medium",
+    prompt:"Ribosomes attached to rough ER primarily synthesize proteins destined for which locations?",options:["Secretion or membranes","Only the nucleus","Only mitochondria"],answer:0,
+    explanation:"Ribosomes on rough ER synthesize many proteins destined for secretion, membranes or the endomembrane system.",reference:"Molecular Biology of the Cell",
+  },
+  {
+    id:"bio-034",lessonId:"human-tissues",topic:"Histology",difficulty:"Easy",
+    prompt:"Which tissue type is characterized by closely packed cells with relatively little extracellular space?",options:["Epithelial tissue","Bone only","Blood plasma"],answer:0,
+    explanation:"Epithelial tissue generally has tightly packed cells arranged in continuous sheets.",reference:"Junqueira's Basic Histology",
+  },
+  {
+    id:"bio-035",lessonId:"human-tissues",topic:"Histology",difficulty:"Medium",
+    prompt:"Why is a thin epithelial layer advantageous for diffusion?",options:["It shortens the diffusion distance","It prevents all movement","It increases DNA replication"],answer:0,
+    explanation:"A thin barrier reduces diffusion distance and can facilitate rapid exchange of substances.",reference:"Junqueira's Basic Histology",
+  },
+  {
+    id:"bio-036",lessonId:"human-regulation",topic:"Physiology",difficulty:"Easy",
+    prompt:"Which pancreatic hormone generally decreases blood glucose?",options:["Insulin","Glucagon","Cortisol"],answer:0,
+    explanation:"Insulin promotes glucose uptake and storage and generally lowers blood glucose concentration.",reference:"Guyton and Hall Textbook of Medical Physiology",
+  },
+  {
+    id:"bio-037",lessonId:"human-regulation",topic:"Physiology",difficulty:"Easy",
+    prompt:"Which pancreatic hormone generally increases blood glucose during fasting?",options:["Glucagon","Insulin","Melatonin"],answer:0,
+    explanation:"Glucagon promotes processes such as glycogenolysis and gluconeogenesis that help raise blood glucose.",reference:"Guyton and Hall Textbook of Medical Physiology",
+  },
+  {
+    id:"bio-038",lessonId:"human-regulation",topic:"Physiology",difficulty:"Medium",
+    prompt:"Which protein in erythrocytes binds most of the oxygen carried in blood?",options:["Hemoglobin","Insulin","Actin"],answer:0,
+    explanation:"Hemoglobin in erythrocytes binds oxygen and enables efficient oxygen transport.",reference:"Guyton and Hall Textbook of Medical Physiology",
+  },
+  {
+    id:"bio-039",lessonId:"human-regulation",topic:"Neuroanatomy",difficulty:"Easy",
+    prompt:"Which two structures make up the central nervous system?",options:["Brain and spinal cord","Heart and lungs","Nerves and muscles"],answer:0,
+    explanation:"The central nervous system consists of the brain and spinal cord.",reference:"Gray's Anatomy",
+  },
+  {
+    id:"bio-040",lessonId:"human-regulation",topic:"Neuroanatomy",difficulty:"Medium",
+    prompt:"Which structure allows communication between the two cerebral hemispheres?",options:["Corpus callosum","Pituitary gland","Medulla"],answer:0,
+    explanation:"The corpus callosum is a large commissural fiber tract connecting the cerebral hemispheres.",reference:"Gray's Anatomy",
+  },
 ];
 
 export const RAT_QUESTION_COUNT = 10;
