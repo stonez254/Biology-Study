@@ -2,7 +2,7 @@ import type { Question } from "./questions";
 import { ACTIVE_LESSONS } from "./lessons";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
-export type AssessmentAttempt = { id: string; type: AssessmentType; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; };
+export type AssessmentAttempt = { id: string; type: AssessmentType; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; questionIds: string[]; };
 export type RATAttempt = AssessmentAttempt;
 export type RevisionAttempt = { id: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; questionIds: string[]; };
 export type StudyProgress = {
@@ -22,7 +22,7 @@ const defaultProgress: StudyProgress={points:0,streak:0,lastStudyDate:null,attem
 function read<T>(key:string,fallback:T):T{try{const v=localStorage.getItem(key);return v?JSON.parse(v) as T:fallback;}catch{return fallback;}}
 export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress>>(PROGRESS_KEY,defaultProgress);return{
   points:raw.points??0,streak:raw.streak??0,lastStudyDate:raw.lastStudyDate??null,
-  attempts:(raw.attempts??[]).map((a:any)=>({...a,type:a.type??"RAT"})),
+  attempts:(raw.attempts??[]).map((a:any)=>({...a,type:a.type??"RAT",questionIds:a.questionIds??[]})),
   missedQuestionIds:raw.missedQuestionIds??[],revisionAttempts:raw.revisionAttempts??[],
   lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,ratRetakeDate:raw.ratRetakeDate??null,
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[]
@@ -99,7 +99,7 @@ export function getCATStatus(progress=getProgress()):CATStatus{
 
 export function recordAssessmentAttempt(type:"RAT"|"CAT",result:Omit<AssessmentAttempt,"id"|"completedAt"|"type">,missedIds:string[]=[]):StudyProgress{
  const progress=getProgress();const next={...progress,points:progress.points+result.score,streak:updateStreak(progress),lastStudyDate:localDateKey(),
- attempts:[{...result,type,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.attempts].slice(0,100),
+ attempts:[{...result,type,id:crypto.randomUUID(),completedAt:new Date().toISOString(),questionIds:result.questionIds??[]},...progress.attempts].slice(0,100),
  missedQuestionIds:Array.from(new Set([...progress.missedQuestionIds,...missedIds]))};saveProgress(next);return next;
 }
 export function recordRATAttempt(result:Omit<RATAttempt,"id"|"completedAt"|"type">,missedIds:string[]=[]){return recordAssessmentAttempt("RAT",result,missedIds);}
