@@ -66,15 +66,18 @@ export function getCATStatus(progress=getProgress()):CATStatus{
   const latest=ratDates[ratDates.length-1];
   const today=localDateKey();
   const hasToday=latest===today;
-  const eligible=streak>=3;
+  const threeRATsDone=streak>=3;
+  const eligible=threeRATsDone && latest<today;
   const remainingRATs=Math.max(0,3-streak);
 
   if(eligible){
     return {eligible:true,ratDays:streak,remainingRATs:0,nextOpenAt:null,waitingForTodayRAT:false};
   }
 
-  const target=addDays(dateAtMidnight(latest),Math.max(1,3-streak));
-  const waitingForTodayRAT=!hasToday && target.getTime()<=Date.now();
+  const target=threeRATsDone
+    ? addDays(dateAtMidnight(latest),1)
+    : addDays(dateAtMidnight(latest),Math.max(1,3-streak));
+  const waitingForTodayRAT=!threeRATsDone && !hasToday && target.getTime()<=Date.now();
   return {eligible:false,ratDays:streak,remainingRATs,nextOpenAt:target,waitingForTodayRAT};
 }
 
