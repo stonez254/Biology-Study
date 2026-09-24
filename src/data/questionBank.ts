@@ -3,7 +3,18 @@ import { deepQuestionSeeds } from "./questionSeedsDeep";
 
 export const questionBank: QuestionSeed[] = [...questionSeeds, ...deepQuestionSeeds];
 
-const lessonIds = new Set(questionBank.map(question => question.lessonId));
+const lessonIds = new Set([
+  "cellular-energy",
+  "human-tissues",
+  "human-regulation",
+  "cell-membrane-transport",
+  "cell-cycle-mitosis",
+  "histology-basics",
+  "blood-immune-cells",
+  "nervous-system-basics",
+  "genetics-foundations",
+  "homeostasis-feedback",
+]);
 const questionIds = new Set<string>();
 
 for (const question of questionBank) {
