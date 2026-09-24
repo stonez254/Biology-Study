@@ -1,4 +1,7 @@
 import { questionSeeds, type QuestionSeed } from "./questionSeeds";
+import { expandedQuestionSeeds } from "./questionSeedsExpanded";
+
+const allQuestionSeeds: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds];
 
 export type Question = QuestionSeed;
 
@@ -58,9 +61,9 @@ function makeVariant(seed: QuestionSeed, variant: number): Question {
   };
 }
 
-// Eight exam-ready variants are generated from each independently authored seed.
-// 126 seeds × 8 variants = 1,008 questions before future expansion.
-export const generatedQuestions: Question[] = questionSeeds.flatMap((seed) =>
+// Variants only change presentation/order. The authored seed count remains the source-of-truth content count.
+// 196 authored seeds × 8 presentation variants = 1,568 question instances.
+export const generatedQuestions: Question[] = allQuestionSeeds.flatMap((seed) =>
   Array.from({ length: 8 }, (_, variant) => makeVariant(seed, variant)),
 );
 
