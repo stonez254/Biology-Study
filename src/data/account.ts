@@ -1,4 +1,4 @@
-export type LocalAccount = { studentName: string; username: string; passwordHash: string; createdAt: string; };
+export type LocalAccount = { id: string; studentName: string; username: string; passwordHash: string; createdAt: string; };
 
 const ACCOUNT_KEY = "biology-study:account";
 const COOKIE_CONSENT = "biology-study-cookie-consent";
@@ -6,7 +6,15 @@ const COOKIE_CONSENT = "biology-study-cookie-consent";
 export function getAccount(): LocalAccount | null {
   try {
     const raw = localStorage.getItem(ACCOUNT_KEY);
-    return raw ? JSON.parse(raw) as LocalAccount : null;
+    if (!raw) return null;
+    const account = JSON.parse(raw) as Partial<LocalAccount>;
+    if (!account.studentName || !account.username || !account.passwordHash || !account.createdAt) return null;
+    if (!account.id) {
+      const migrated: LocalAccount = { ...account, id: crypto.randomUUID() } as LocalAccount;
+      localStorage.setItem(ACCOUNT_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
+    return account as LocalAccount;
   } catch { return null; }
 }
 
@@ -19,7 +27,7 @@ export async function hashPassword(password: string): Promise<string> {
 export async function createLocalAccount(studentName: string, password: string): Promise<LocalAccount> {
   const cleanName = studentName.trim();
   if (!cleanName || password.length < 6) throw new Error("Name and a password of at least 6 characters are required.");
-  const account: LocalAccount = { studentName: cleanName, username: cleanName, passwordHash: await hashPassword(password), createdAt: new Date().toISOString() };
+  const account: LocalAccount = { id: crypto.randomUUID(), studentName: cleanName, username: cleanName, passwordHash: await hashPassword(password), createdAt: new Date().toISOString() };
   localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
   return account;
 }
