@@ -1,4 +1,6 @@
-import { getQuestionCountForLesson } from "./questionBank";\n\nexport type LessonSection = {
+import { getQuestionCountForLesson } from "./questionBank";
+
+export type LessonSection = {
   label: string;
   title: string;
   body: string;
@@ -31,7 +33,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"05 • Mechanism",title:"From glucose to usable energy",body:"During glycolysis, glucose is converted into pyruvate and a small amount of ATP is produced. When oxygen is available, pyruvate-derived carbon enters mitochondrial pathways that generate reduced electron carriers. These carriers deliver high-energy electrons to the electron transport chain, where their energy helps establish a proton gradient. ATP synthase uses that gradient to form ATP from ADP and phosphate.",highYield:"Remember the flow: glucose → glycolysis → mitochondrial oxidation → electron transport → proton gradient → ATP synthesis."},
       {label:"06 • Integration",title:"ATP is continuously recycled",body:"ATP is not stored in large quantities as a long-term fuel reserve. Cells continually regenerate ATP as it is consumed. This is why disruptions in oxygen delivery, mitochondrial function or substrate availability can quickly affect tissues with high energy demands. Muscle, nervous tissue and actively transporting cells are particularly dependent on a reliable ATP supply.",highYield:"ATP production and ATP use are continuous processes."},
     ],
-    reference:"Guyton and Hall Textbook of Medical Physiology", questionCount:10
+    reference:"Guyton and Hall Textbook of Medical Physiology", 
   },
   {
     id:"human-tissues",
@@ -45,7 +47,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • High-yield",title:"Protein-secreting cells",body:"Cells specialized for protein secretion commonly contain abundant rough endoplasmic reticulum because ribosomes synthesize proteins destined for secretion or membranes.",highYield:"Rough ER is a major clue for protein synthesis and secretion."},
       {label:"04 • Quick check",title:"Before the RAT",body:"Review epithelial functions, simple squamous epithelium and the role of rough ER.",highYield:"Be able to connect structure with function."}
     ],
-    reference:"Junqueira's Basic Histology", questionCount:10
+    reference:"Junqueira's Basic Histology", 
   },
   {
     id:"human-regulation",
@@ -59,7 +61,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Neuroanatomy",title:"Nervous system organization",body:"The central nervous system consists of the brain and spinal cord. Dendrites typically receive incoming signals, while the corpus callosum connects the cerebral hemispheres.",highYield:"Know the major structures and their functions."},
       {label:"04 • Quick check",title:"Before the RAT",body:"Review insulin, glucagon, oxygen transport, CNS organization and basic neuronal structure.",highYield:"Use structure-function relationships to answer the RAT."}
     ],
-    reference:"Guyton and Hall Textbook of Medical Physiology; Gray's Anatomy", questionCount:10
+    reference:"Guyton and Hall Textbook of Medical Physiology; Gray's Anatomy", 
   },
   {
     id:"cell-membrane-transport",sequence:4,title:"Cell Membrane & Transport",topic:"Cell Biology",
@@ -70,7 +72,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • High-yield",title:"Active transport",body:"Active transport moves substances against an electrochemical gradient and requires energy. Transport proteins can use ATP directly or use stored ion gradients.",highYield:"Against the gradient means an energy source is required."},
       {label:"04 • Quick check",title:"Review targets",body:"Compare diffusion, osmosis, facilitated diffusion and active transport using direction of movement, membrane proteins and energy requirements.",highYield:"Always identify the gradient and energy source first."}
     ],
-    reference:"Molecular Biology of the Cell",questionCount:10
+    reference:"Molecular Biology of the Cell"
   },
   {
     id:"cell-cycle-mitosis",sequence:5,title:"Cell Cycle & Mitosis",topic:"Cell Biology & Genetics",
@@ -81,7 +83,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Comparison",title:"Mitosis versus meiosis",body:"Mitosis generally produces genetically similar daughter cells, whereas meiosis involves two divisions and produces haploid cells with genetic variation.",highYield:"Meiosis reduces chromosome number; mitosis generally maintains it."},
       {label:"04 • Quick check",title:"Review targets",body:"Know G1, S, G2 and M phases and identify what happens to chromosomes during the major stages of mitosis.",highYield:"Sequence matters."}
     ],
-    reference:"Molecular Biology of the Cell",questionCount:10
+    reference:"Molecular Biology of the Cell"
   },
   {
     id:"histology-basics",sequence:6,title:"Histology Basics",topic:"Histology",
@@ -92,7 +94,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Connective tissue",title:"Cells and matrix",body:"Connective tissues generally contain cells distributed within an extracellular matrix. The matrix contributes substantially to mechanical and biological properties.",highYield:"Connective tissue is defined strongly by its extracellular matrix."},
       {label:"04 • Quick check",title:"Review targets",body:"Practice identifying tissue by cell arrangement, extracellular material, vascularity and specialized function.",highYield:"Look for the dominant structural clue first."}
     ],
-    reference:"Junqueira's Basic Histology",questionCount:10
+    reference:"Junqueira's Basic Histology"
   },
   {
     id:"blood-immune-cells",sequence:7,title:"Blood & Immune Cells",topic:"Physiology & Histology",
@@ -103,7 +105,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Leukocytes",title:"Cellular defense",body:"Leukocytes participate in innate and adaptive immune responses. Different leukocyte types have distinct roles in inflammation, phagocytosis and immune recognition.",highYield:"White-cell function depends on cell type."},
       {label:"04 • Quick check",title:"Review targets",body:"Compare erythrocytes, platelets and major leukocyte categories by structure and function.",highYield:"Function follows specialization."}
     ],
-    reference:"Guyton and Hall Textbook of Medical Physiology; Junqueira's Basic Histology",questionCount:10
+    reference:"Guyton and Hall Textbook of Medical Physiology; Junqueira's Basic Histology"
   },
   {
     id:"nervous-system-basics",sequence:8,title:"Nervous System Basics",topic:"Neuroanatomy",
@@ -114,7 +116,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Communication",title:"Synapses",body:"Neurons communicate at synapses using chemical or electrical mechanisms. Chemical synapses commonly use neurotransmitters released from presynaptic terminals.",highYield:"Direction of information flow is important."},
       {label:"04 • Quick check",title:"Review targets",body:"Be able to identify the CNS, PNS, dendrites, axons and basic synaptic organization.",highYield:"Use anatomy together with function."}
     ],
-    reference:"Gray's Anatomy",questionCount:10
+    reference:"Gray's Anatomy"
   },
   {
     id:"genetics-foundations",sequence:9,title:"Genetics Foundations",topic:"Genetics",
@@ -125,7 +127,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Inheritance",title:"Basic terminology",body:"Genotype describes genetic constitution while phenotype describes observable characteristics arising from genetic and environmental influences.",highYield:"Genotype is genetic; phenotype is observable."},
       {label:"04 • Quick check",title:"Review targets",body:"Review gene, allele, chromosome, genotype and phenotype and how they relate to one another.",highYield:"Keep the hierarchy clear."}
     ],
-    reference:"Molecular Biology of the Cell",questionCount:10
+    reference:"Molecular Biology of the Cell"
   },
   {
     id:"homeostasis-feedback",sequence:10,title:"Homeostasis & Feedback",topic:"Physiology",
@@ -136,7 +138,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
       {label:"03 • Positive feedback",title:"Amplifying a process",body:"Positive feedback reinforces a change and can drive a process toward completion. It is useful in selected physiological events.",highYield:"Positive feedback amplifies rather than corrects the initial change."},
       {label:"04 • Quick check",title:"Review targets",body:"For any feedback example, identify the regulated variable, sensor, control pathway and response.",highYield:"Identify what changed and whether the response opposes or reinforces it."}
     ],
-    reference:"Guyton and Hall Textbook of Medical Physiology",questionCount:10
+    reference:"Guyton and Hall Textbook of Medical Physiology"
   }
 ];
 
