@@ -230,7 +230,7 @@ export default function Practice({ onExit, onProgress }: Props) {
         </div>
         <div className="practice-start">
           <div><strong>{pool.length}</strong><span>matching questions available</span></div>
-          <button className="primary-button" disabled={!pool.length} onClick={start}>Start Practice</button>
+          <button className="primary-button" disabled={!pool.length} onClick={() => start()}>Start Practice</button>
           <button className="secondary-button" onClick={onExit}>Back to dashboard</button>
         </div>
       </div>
@@ -297,7 +297,7 @@ export default function Practice({ onExit, onProgress }: Props) {
         <div className="result-actions">
           <button className="secondary-button" onClick={onExit}>Back to dashboard</button>
           <button className="secondary-button" onClick={() => { setMode("Weak Areas"); start("Weak Areas"); }}>Practice weak areas</button>
-          <button className="primary-button" onClick={start}>Practice again</button>
+          <button className="primary-button" onClick={() => start()}>Practice again</button>
         </div>
       </div>
     </div>;
