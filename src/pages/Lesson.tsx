@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getTodaysLessonId, markLessonRead, type StudyProgress } from "../data/progress";
 
 type Props={onRead:(progress:StudyProgress)=>void;onExit:()=>void};
 
 export default function Lesson({onRead,onExit}:Props){
  const [confirmed,setConfirmed]=useState(false);
+ const [readPercent,setReadPercent]=useState(0);
+ const lessonRef=useRef<HTMLElement|null>(null);
  const lessonId=getTodaysLessonId();
  const lessons:Record<string,{title:string;sections:[string,string,string,string][]}> = {
   "cellular-energy":{title:"Cellular Energy & ATP",sections:[
@@ -27,6 +29,34 @@ export default function Lesson({onRead,onExit}:Props){
   ]}
  };
  const lesson=lessons[lessonId];
- const complete=()=>{const progress=markLessonRead(lessonId);setConfirmed(true);setTimeout(()=>onRead(progress),250);};
- return <div className="content"><div className="lesson-header"><div><span className="badge">DAILY BIOLOGY LESSON</span><h2>{lesson.title}</h2><p>Read this lesson before attempting today&apos;s RAT.</p></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div><article className="lesson-card"><section><span className="eyebrow">{lesson.sections[0][0]}</span><h3>{lesson.sections[0][1]}</h3><p>{lesson.sections[0][2]}</p><div className="high-yield"><strong>{lesson.sections[0][3]}</strong></div></section><section><span className="eyebrow">{lesson.sections[1][0]}</span><h3>{lesson.sections[1][1]}</h3><p>{lesson.sections[1][2]}</p><div className="high-yield"><strong>{lesson.sections[1][3]}</strong></div></section><section><span className="eyebrow">{lesson.sections[2][0]}</span><h3>{lesson.sections[2][1]}</h3><p>{lesson.sections[2][2]}</p><div className="high-yield"><strong>{lesson.sections[2][3]}</strong></div></section><section><span className="eyebrow">{lesson.sections[3][0]}</span><h3>{lesson.sections[3][1]}</h3><p>{lesson.sections[3][2]}</p><div className="high-yield"><strong>{lesson.sections[3][3]}</strong></div></section></article><div className="lesson-complete"><div><strong>Lesson complete?</strong><span>Once you finish reading, unlock today's 10-question RAT.</span></div><button className="primary-button" disabled={confirmed} onClick={complete}>{confirmed?"RAT UNLOCKED":"Finish lesson • Take today's RAT"}</button></div></div>;
+
+ const updateReadProgress=()=>{
+   const element=lessonRef.current;
+   if(!element)return;
+   const max=element.scrollHeight-element.clientHeight;
+   const percent=max<=1?100:Math.min(100,Math.round((element.scrollTop/max)*100));
+   setReadPercent(percent);
+ };
+
+ useEffect(()=>{
+   const element=lessonRef.current;
+   if(!element)return;
+   updateReadProgress();
+ },[]);
+
+ const complete=()=>{
+   if(readPercent<100||confirmed)return;
+   const progress=markLessonRead(lessonId);
+   setConfirmed(true);
+   setTimeout(()=>onRead(progress),250);
+ };
+
+ return <div className="content">
+  <div className="lesson-header"><div><span className="badge">TODAY&apos;S LESSON</span><h2>{lesson.title}</h2><p>Read and scroll through the complete notes before today&apos;s RAT can be unlocked.</p></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div>
+  <div className="lesson-progress-panel"><div><strong>Lesson reading progress</strong><span>{readPercent}% complete</span></div><div className="progress"><i style={{width:`${readPercent}%`}}/></div><small>{readPercent<100?"Scroll through all lesson notes to unlock TAKE RAT.":"100% complete. TAKE RAT is now unlocked."}</small></div>
+  <article ref={lessonRef} onScroll={updateReadProgress} className="lesson-card lesson-scroll">
+   {[0,1,2,3].map(index=><section key={index}><span className="eyebrow">{lesson.sections[index][0]}</span><h3>{lesson.sections[index][1]}</h3><p>{lesson.sections[index][2]}</p><div className="high-yield"><strong>{lesson.sections[index][3]}</strong></div></section>)}
+  </article>
+  <div className="lesson-complete"><div><strong>{readPercent===100?"Lesson complete":"Keep reading"}</strong><span>{readPercent===100?"The daily RAT is ready.":"You must reach 100% reading progress before the RAT unlocks."}</span></div><button className="primary-button" disabled={readPercent<100||confirmed} onClick={complete}>{confirmed?"RAT UNLOCKED":readPercent===100?"TAKE RAT":"SCROLL TO 100%"}</button></div>
+ </div>;
 }
