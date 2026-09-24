@@ -1,7 +1,11 @@
+export type QuestionType = "concept" | "application" | "scenario" | "identification" | "calculation";
+
 export type QuestionSeed = {
   id: string;
   lessonId: string;
   topic: string;
+  subtopic?: string;
+  questionType?: QuestionType;
   difficulty: "Easy" | "Medium" | "Hard";
   prompt: string;
   options: [string, string, string];
