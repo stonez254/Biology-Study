@@ -28,7 +28,8 @@ export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress
   lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,ratRetakeDate:raw.ratRetakeDate??null,
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[]
 };}
-export function saveProgress(progress:StudyProgress){localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}\nexport function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
+export function saveProgress(progress:StudyProgress){localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}
+export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
 function localDateKey(date=new Date()){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");}
 function dateAtMidnight(dateKey:string){const [year,month,day]=dateKey.split("-").map(Number);return new Date(year,month-1,day);}
 function addDays(date:Date,days:number){const next=new Date(date);next.setDate(next.getDate()+days);return next;}
