@@ -419,3 +419,72 @@ nav { gap: 7px; }
 @media(prefers-reduced-motion:reduce) {
   .progress i { animation:none; }
 }
+
+/* NEON MAROON NAVIGATION */
+:root {
+  --nav-maroon: #650d24;
+  --nav-maroon-deep: #3d0717;
+  --nav-maroon-bright: #a9143f;
+  --nav-maroon-glow: rgba(255, 32, 101, .55);
+  --nav-white: #ffffff;
+}
+.nav-item {
+  color: #8fdde0;
+  border: 1px solid rgba(0,246,255,.24);
+  background: rgba(0,246,255,.025);
+  position: relative;
+  overflow: visible;
+  transition: color .22s ease, background .22s ease, border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+}
+.nav-item::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: 10px;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: 0 0 6px rgba(0,246,255,.75), 0 0 16px rgba(0,246,255,.45), inset 0 0 10px rgba(0,246,255,.12);
+  transition: opacity .22s ease;
+}
+.nav-item:hover {
+  color: #ffffff;
+  border-color: rgba(0,246,255,.8);
+  background: rgba(0,246,255,.055);
+  box-shadow: 0 0 10px rgba(0,246,255,.25), inset 0 0 12px rgba(0,246,255,.06);
+}
+.nav-item:hover::before,
+.nav-item.active::before {
+  opacity: 1;
+}
+.nav-item.active {
+  color: var(--nav-white) !important;
+  background: linear-gradient(90deg, var(--nav-maroon-deep) 0%, var(--nav-maroon) 48%, var(--nav-maroon-bright) 100%) !important;
+  border: 1px solid #ff2f70 !important;
+  box-shadow:
+    0 0 6px rgba(255,47,112,.9),
+    0 0 16px var(--nav-maroon-glow),
+    0 0 30px rgba(169,20,63,.42),
+    inset 0 0 12px rgba(255,47,112,.18) !important;
+  text-shadow: 0 0 8px rgba(255,255,255,.7);
+  transform: translateX(2px);
+}
+.nav-item.active .nav-icon {
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+  text-shadow: 0 0 8px #ffffff, 0 0 14px rgba(255,47,112,.8);
+  box-shadow: 0 0 8px rgba(255,47,112,.55);
+}
+.nav-item.active span:not(.nav-icon) {
+  color: #ffffff !important;
+  text-shadow: 0 0 7px rgba(255,255,255,.5);
+}
+.nav-icon {
+  transition: color .22s ease, border-color .22s ease, box-shadow .22s ease, text-shadow .22s ease;
+}
+.nav-item:nth-child(3n):hover {
+  border-color: rgba(57,255,20,.75);
+  box-shadow: 0 0 12px rgba(57,255,20,.25), inset 0 0 12px rgba(57,255,20,.05);
+}
+.nav-item:nth-child(3n):hover::before {
+  box-shadow: 0 0 7px rgba(57,255,20,.8), 0 0 18px rgba(57,255,20,.42), inset 0 0 10px rgba(57,255,20,.1);
+}
