@@ -117,4 +117,4 @@ export function clearActiveCAT(){localStorage.removeItem(CAT_KEY);}
 export function saveActiveRevision(saved:SavedRevision){localStorage.setItem(REVISION_KEY,JSON.stringify(saved));}
 export function getActiveRevision():SavedRevision|null{try{const r=localStorage.getItem(REVISION_KEY);return r?JSON.parse(r):null;}catch{return null;}}
 export function clearActiveRevision(){localStorage.removeItem(REVISION_KEY);}
-export function hydrateQuestions(saved:SavedAssessment,bank:Question[]){const byId=new Map(bank.map(q=>[q.id,q]));return saved.questionIds.map(id=>byId.get(id)).filter((q):q is Question=>Boolean(q));}
+export function hydrateQuestions(saved:SavedAssessment|SavedRevision,bank:Question[]){const byId=new Map(bank.map(q=>[q.id,q]));return saved.questionIds.map(id=>byId.get(id)).filter((q):q is Question=>Boolean(q));}
