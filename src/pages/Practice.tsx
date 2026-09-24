@@ -48,9 +48,22 @@ export default function Practice({ onExit, onProgress }: Props) {
 
   const start = () => {
     const recent = new Set(getRecentIds());
+    const progress = getProgress();
+    const priorityScores = new Map<string, number>();
+    for (const practice of progress.practiceSessions ?? []) {
+      for (const id of practice.incorrectQuestionIds ?? []) {
+        priorityScores.set(id, (priorityScores.get(id) ?? 0) + 6);
+      }
+      for (const id of practice.timedOutQuestionIds ?? []) {
+        priorityScores.set(id, (priorityScores.get(id) ?? 0) + 3);
+      }
+      for (const id of practice.correctQuestionIds ?? []) {
+        priorityScores.set(id, Math.max(0, (priorityScores.get(id) ?? 0) - 2));
+      }
+    }
     const freshPool = pool.filter(question => !recent.has(question.id));
     const source = freshPool.length >= Math.min(size, pool.length) ? freshPool : [...freshPool, ...pool.filter(question => recent.has(question.id))];
-    const chosen = selectPracticeQuestions(source, Math.min(size, pool.length));
+    const chosen = selectPracticeQuestions(source, Math.min(size, pool.length), recent, priorityScores);
     rememberQuestionIds(chosen.map(question => question.id));
     setSession(chosen);
     setCurrent(0);
