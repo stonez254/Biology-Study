@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { questions, type Question } from "../data/questions";
 import { selectPracticeQuestions } from "../data/questionSelector";
 
@@ -34,6 +34,7 @@ export default function Practice({ onExit }: Props) {
   const [correct, setCorrect] = useState(0);
   const [combo, setCombo] = useState(0);
   const [finished, setFinished] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(10);
 
   const pool = useMemo(() => questions.filter(q =>
     (topic === "All" || q.topic === topic) &&
@@ -52,6 +53,7 @@ export default function Practice({ onExit }: Props) {
     setCorrect(0);
     setCombo(0);
     setFinished(false);
+    setTimeLeft(10);
   };
 
   const choose = (index: number) => {
@@ -65,6 +67,23 @@ export default function Practice({ onExit }: Props) {
       setCombo(0);
     }
   };
+
+  useEffect(() => {
+    if (!session.length || finished || answer !== null) return;
+    setTimeLeft(10);
+    const timer = window.setInterval(() => {
+      setTimeLeft(value => {
+        if (value <= 1) {
+          window.clearInterval(timer);
+          setAnswer(-1);
+          setCombo(0);
+          return 0;
+        }
+        return value - 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [current, session.length, finished, answer]);
 
   const next = () => {
     if (current >= session.length - 1) {
@@ -134,7 +153,8 @@ export default function Practice({ onExit }: Props) {
   }
 
   const q = session[current];
-  const answeredCorrectly = answer !== null && answer === q.answer;
+  const timedOut = answer === -1;
+  const answeredCorrectly = answer !== null && answer >= 0 && answer === q.answer;
 
   return <div className="content">
     <div className="test-header">
@@ -147,7 +167,8 @@ export default function Practice({ onExit }: Props) {
     </div>
     <div className="question-layout">
       <div className="question-card practice-question">
-        <div className="question-meta"><span>{correct} correct so far</span><span>{answer === null ? "Choose an answer" : answeredCorrectly ? "Correct!" : "Not quite"}</span></div>
+        <div className="question-meta"><span>{correct} correct so far</span><span>{answer === null ? "Choose an answer" : timedOut ? "Time expired" : answeredCorrectly ? "Correct!" : "Not quite"}</span></div>
+        {answer === null && <div className="practice-timer" aria-live="polite"><div className="practice-timer-track"><div className="practice-timer-string" style={{ width: `${timeLeft * 10}%` }} /></div><span>{timeLeft}s</span></div>}
         <h3>{q.prompt}</h3>
         <div className="options">
           {q.options.map((option, index) => {
@@ -160,8 +181,8 @@ export default function Practice({ onExit }: Props) {
           })}
         </div>
         {answer !== null && <div className={answeredCorrectly ? "practice-feedback correct" : "practice-feedback wrong"}>
-          <strong>{answeredCorrectly ? "Correct answer." : "Review this one."}</strong>
-          <p><b>Answer:</b> {q.options[q.answer]}</p>
+          <strong>{timedOut ? "Time expired." : answeredCorrectly ? "Correct answer." : "Review this one."}</strong>
+          <p>{timedOut ? "This question was passed automatically. Your combo has been reset." : <><b>Answer:</b> {q.options[q.answer]}</>}</p>
           <p>{q.explanation}</p>
           <small>{q.reference}</small>
         </div>}
