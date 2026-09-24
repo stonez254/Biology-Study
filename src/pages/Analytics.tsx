@@ -66,13 +66,47 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
       .filter(item => item.total >= 2)
       .sort((a, b) => a.accuracy - b.accuracy || b.total - a.total);
 
+    const practiceAttempts = (progress.practiceSessions ?? []).filter(s => range === "all" || new Date(s.completedAt).getTime() >= cutoff);
+    const practiceTypeMap = new Map<string, Breakdown>();
+    const practiceDifficultyMap = new Map<string, Breakdown>();
+    const practiceLessonMap = new Map<string, Breakdown>();
+    const practiceSubtopicMap = new Map<string, Breakdown>();
+
+    for (const session of practiceAttempts) {
+      const correctIds = new Set(session.correctQuestionIds ?? []);
+      const incorrectIds = new Set(session.incorrectQuestionIds ?? []);
+      for (const id of session.questionIds ?? []) {
+        const q = questionMap.get(id);
+        if (!q || (!session.correctQuestionIds && !session.incorrectQuestionIds)) continue;
+        const answeredCorrectly = correctIds.has(id);
+        const answeredIncorrectly = incorrectIds.has(id) || !answeredCorrectly;
+        if (!answeredCorrectly && !answeredIncorrectly) continue;
+        const maps: [Map<string, Breakdown>, string][] = [
+          [practiceTypeMap, q.questionType ?? "concept"],
+          [practiceDifficultyMap, q.difficulty],
+          [practiceLessonMap, q.lessonId],
+          [practiceSubtopicMap, q.subtopic ?? "General"],
+        ];
+        for (const [map, key] of maps) {
+          const row = map.get(key) ?? { total: 0, correct: 0 };
+          row.total += 1;
+          if (answeredCorrectly) row.correct += 1;
+          map.set(key, row);
+        }
+      }
+    }
+
     const lessonNames = new Map(lessons.map(l => [l.id, l.title]));
     const weakLessons = rank(lessonMap).slice(0, 5).map(item => ({ ...item, name: lessonNames.get(item.key) ?? item.key }));
     const weakSubtopics = rank(subtopicMap).slice(0, 5);
     const typePerformance = rank(typeMap).sort((a, b) => a.key.localeCompare(b.key));
     const difficultyPerformance = rank(difficultyMap).sort((a, b) => ["Easy", "Medium", "Hard"].indexOf(a.key) - ["Easy", "Medium", "Hard"].indexOf(b.key));
+    const practiceWeakLessons = rank(practiceLessonMap).slice(0, 5).map(item => ({ ...item, name: lessonNames.get(item.key) ?? item.key }));
+    const practiceWeakSubtopics = rank(practiceSubtopicMap).slice(0, 5);
+    const practiceTypePerformance = rank(practiceTypeMap).sort((a, b) => a.key.localeCompare(b.key));
+    const practiceDifficultyPerformance = rank(practiceDifficultyMap).sort((a, b) => ["Easy", "Medium", "Hard"].indexOf(a.key) - ["Easy", "Medium", "Hard"].indexOf(b.key));
 
-    return { attempts, revisions, rats, cats, totalQuestions, totalCorrect, trend, recent, daily, weakLessons, weakSubtopics, typePerformance, difficultyPerformance };
+    return { attempts, revisions, rats, cats, totalQuestions, totalCorrect, trend, recent, daily, weakLessons, weakSubtopics, typePerformance, difficultyPerformance, practiceAttempts, practiceWeakLessons, practiceWeakSubtopics, practiceTypePerformance, practiceDifficultyPerformance };
   }, [progress, range]);
 
   const coverage = lessons.length ? pct((progress.completedLessonIds.length / lessons.length) * 100) : 0;
@@ -119,6 +153,16 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     <section className="analytics-grid">
       <BreakdownPanel title="Question-type performance" eyebrow="Thinking skills" items={data.typePerformance.map(x => ({ name: x.key, accuracy: x.accuracy, detail: x.correct + " correct of " + x.total }))} empty="Tracked question-type data will appear after new assessments." />
       <BreakdownPanel title="Difficulty performance" eyebrow="Challenge level" items={data.difficultyPerformance.map(x => ({ name: x.key, accuracy: x.accuracy, detail: x.correct + " correct of " + x.total }))} empty="Tracked difficulty data will appear after new assessments." />
+    </section>
+
+    <section className="analytics-grid">
+      <BreakdownPanel title="Practice weak lessons" eyebrow="Practice intelligence" items={data.practiceWeakLessons.map(x => ({ name: x.name, accuracy: x.accuracy, detail: x.correct + " correct of " + x.total }))} empty="Complete a new Practice session to build lesson-level practice data." />
+      <BreakdownPanel title="Practice weak subtopics" eyebrow="Practice intelligence" items={data.practiceWeakSubtopics.map(x => ({ name: x.key, accuracy: x.accuracy, detail: x.correct + " correct of " + x.total }))} empty="Complete a new Practice session to build subtopic-level practice data." />
+    </section>
+
+    <section className="analytics-grid">
+      <BreakdownPanel title="Practice question types" eyebrow="Practice intelligence" items={data.practiceTypePerformance.map(x => ({ name: x.key, accuracy: x.accuracy, detail: x.correct + " correct of " + x.total }))} empty="Complete a new Practice session to see which thinking skills need more work." />
+      <BreakdownPanel title="Practice difficulty" eyebrow="Practice intelligence" items={data.practiceDifficultyPerformance.map(x => ({ name: x.key, accuracy: x.accuracy, detail: x.correct + " correct of " + x.total }))} empty="Complete a new Practice session to see performance by difficulty." />
     </section>
 
     {!hasBreakdown && data.attempts.length > 0 && <div className="analytics-note">Detailed breakdowns start with your new RAT/CAT attempts. Older attempts are still included in overall accuracy, but they were saved before per-question analytics was introduced.</div>}
