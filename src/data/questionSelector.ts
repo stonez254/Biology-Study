@@ -32,9 +32,9 @@ function inferQuestionType(question: Question): QuestionType {
 }
 
 function quotaFor<T extends string>(items: T[], count: number, weights: Record<T, number>): Record<T, number> {
-  const totalWeight = Object.values(weights).reduce((sum: number, weight: number) => sum + weight, 0);
+  const totalWeight = items.reduce((sum, item) => sum + weights[item], 0);
   const quotas = Object.fromEntries(items.map(item => [item, Math.floor((count * weights[item]) / totalWeight)])) as Record<T, number>;
-  let assigned = Object.values(quotas).reduce((sum: number, value: number) => sum + value, 0);
+  let assigned = items.reduce((sum, item) => sum + quotas[item], 0);
   const remainder = [...items].sort((a, b) => (weights[b] - weights[a]) || Math.random() - 0.5);
   for (const item of remainder) {
     if (assigned >= count) break;
