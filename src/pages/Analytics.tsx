@@ -76,7 +76,12 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
   }, [progress, range]);
 
   const coverage = lessons.length ? pct((progress.completedLessonIds.length / lessons.length) * 100) : 0;
-  const hasBreakdown = data.attempts.some(a => (a.correctQuestionIds ?? []).length > 0);\n  const practice = progress.practiceSessions ?? [];\n  const bestPracticeAccuracy = practice.length ? Math.max(...practice.map(s => s.accuracy)) : 0;\n  const bestPracticeCombo = practice.length ? Math.max(...practice.map(s => s.maxCombo)) : 0;\n  const bestAssessmentAccuracy = data.attempts.length ? Math.max(...data.attempts.map(a => a.accuracy)) : 0;\n  const recommendations = buildRecommendations(data, progress);
+  const hasBreakdown = data.attempts.some(a => (a.correctQuestionIds ?? []).length > 0);
+  const practice = progress.practiceSessions ?? [];
+  const bestPracticeAccuracy = practice.length ? Math.max(...practice.map(s => s.accuracy)) : 0;
+  const bestPracticeCombo = practice.length ? Math.max(...practice.map(s => s.maxCombo)) : 0;
+  const bestAssessmentAccuracy = data.attempts.length ? Math.max(...data.attempts.map(a => a.accuracy)) : 0;
+  const recommendations = buildRecommendations(data, progress);
 
   return <div className="content analytics-page">
     <section className="analytics-heading">
@@ -133,6 +138,22 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
 
     <section className="analytics-grid">
       <div className="panel analytics-panel">
+        <div className="panel-heading"><div><span className="eyebrow">Personal records</span><h3>Your best results</h3></div></div>
+        <div className="records-grid">
+          <Record label="Best assessment accuracy" value={bestAssessmentAccuracy + "%"} />
+          <Record label="Best Practice accuracy" value={bestPracticeAccuracy + "%"} />
+          <Record label="Best Practice combo" value={"🔥 " + bestPracticeCombo} />
+          <Record label="Practice sessions" value={String(practice.length)} />
+        </div>
+      </div>
+      <div className="panel analytics-panel">
+        <div className="panel-heading"><div><span className="eyebrow">Smart guidance</span><h3>Recommended next steps</h3></div></div>
+        <div className="recommendation-list">{recommendations.map((item, i) => <div className="recommendation-row" key={item.title}><span>{String(i + 1).padStart(2, "0")}</span><div><strong>{item.title}</strong><p>{item.detail}</p></div></div>)}</div>
+      </div>
+    </section>
+
+    <section className="analytics-grid">
+      <div className="panel analytics-panel">
         <div className="panel-heading"><div><span className="eyebrow">Curriculum</span><h3>Lesson coverage</h3></div><span className="fact-tag">{progress.completedLessonIds.length}/{lessons.length}</span></div>
         <div className="lesson-analytics-list">{lessons.map((lesson, i) => { const done = progress.completedLessonIds.includes(lesson.id); return <div className="lesson-analytics-row" key={lesson.id}><div className="lesson-analytics-index">{String(i+1).padStart(2,"0")}</div><div className="lesson-analytics-main"><strong>{lesson.title}</strong><span>{lesson.questionCount} questions in bank</span><div className="mini-progress"><i style={{width: done ? "100%" : "0%"}} /></div></div><b className={done ? "analytics-status complete" : "analytics-status"}>{done ? "Complete" : "Open"}</b></div>; })}</div>
       </div>
@@ -140,7 +161,19 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
   </div>;
 }
 
-function Record({label,value}:{label:string;value:string}) { return <div className="record-card"><span>{label}</span><strong>{value}</strong></div>; }\nfunction buildRecommendations(data: any, progress: StudyProgress) {\n  const items:{title:string;detail:string}[]=[];\n  if (data.weakLessons.length) items.push({title:"Review " + data.weakLessons[0].name, detail:"Your tracked accuracy here is " + pct(data.weakLessons[0].accuracy) + "%. Revisit the lesson and use Practice before your next assessment."});\n  if (data.weakSubtopics.length) items.push({title:"Drill " + data.weakSubtopics[0].key, detail:"This subtopic currently has " + pct(data.weakSubtopics[0].accuracy) + "% tracked accuracy. Target it with focused practice."});\n  const weakestType=data.typePerformance[0];\n  if (weakestType) items.push({title:"Practise " + weakestType.key + " questions", detail:"This question type is currently at " + pct(weakestType.accuracy) + "% accuracy across tracked attempts."});\n  const weakestDifficulty=data.difficultyPerformance.slice().sort((a:any,b:any)=>a.accuracy-b.accuracy)[0];\n  if (weakestDifficulty) items.push({title:"Build confidence with " + weakestDifficulty.key + " questions", detail:"Your tracked " + weakestDifficulty.key.toLowerCase() + " accuracy is " + pct(weakestDifficulty.accuracy) + "%. Use Practice to strengthen it."});\n  if (progress.missedQuestionIds.length) items.push({title:"Clear the Revision queue", detail:progress.missedQuestionIds.length + " missed question" + (progress.missedQuestionIds.length===1?"":"s") + " are waiting to be mastered."});\n  if (!items.length) items.push({title:"Start building your data", detail:"Complete a RAT, CAT or Practice session and Analytics will turn your results into personalised study guidance."});\n  return items.slice(0,4);\n}\nfunction Kpi({label,value,detail}:{label:string;value:string;detail:string}) { return <div className="analytics-kpi"><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>; }
+function buildRecommendations(data: any, progress: StudyProgress) {
+  const items:{title:string;detail:string}[]=[];
+  if (data.weakLessons.length) items.push({title:"Review " + data.weakLessons[0].name, detail:"Your tracked accuracy here is " + pct(data.weakLessons[0].accuracy) + "%. Revisit the lesson and use Practice before your next assessment."});
+  if (data.weakSubtopics.length) items.push({title:"Drill " + data.weakSubtopics[0].key, detail:"This subtopic currently has " + pct(data.weakSubtopics[0].accuracy) + "% tracked accuracy. Target it with focused practice."});
+  const weakestType=data.typePerformance[0];
+  if (weakestType) items.push({title:"Practise " + weakestType.key + " questions", detail:"This question type is currently at " + pct(weakestType.accuracy) + "% accuracy across tracked attempts."});
+  const weakestDifficulty=data.difficultyPerformance.slice().sort((a:any,b:any)=>a.accuracy-b.accuracy)[0];
+  if (weakestDifficulty) items.push({title:"Build confidence with " + weakestDifficulty.key + " questions", detail:"Your tracked " + weakestDifficulty.key.toLowerCase() + " accuracy is " + pct(weakestDifficulty.accuracy) + "%. Use Practice to strengthen it."});
+  if (progress.missedQuestionIds.length) items.push({title:"Clear the Revision queue", detail:progress.missedQuestionIds.length + " missed question" + (progress.missedQuestionIds.length===1?"":"s") + " are waiting to be mastered."});
+  if (!items.length) items.push({title:"Start building your data", detail:"Complete a RAT, CAT or Practice session and Analytics will turn your results into personalised study guidance."});
+  return items.slice(0,4);
+}
+function Kpi({label,value,detail}:{label:string;value:string;detail:string}) { return <div className="analytics-kpi"><span>{label}</span><strong>{value}</strong><small>{detail}</small></div>; }
 function MetricBar({label,value,detail}:{label:string;value:number;detail:string}) { return <div className="metric-bar"><div className="metric-bar-top"><strong>{label}</strong><span>{value} session{value===1?"":"s"}</span></div><div className="metric-track"><i style={{width: Math.min(100,value*10)+"%"}} /></div><small>{detail}</small></div>; }
 function BreakdownPanel({title,eyebrow,items,empty}:{title:string;eyebrow:string;items:{name:string;accuracy:number;detail:string}[];empty:string}) {
   return <div className="panel analytics-panel"><div className="panel-heading"><div><span className="eyebrow">{eyebrow}</span><h3>{title}</h3></div></div>{items.length ? <div className="breakdown-list">{items.map(item => <div className="breakdown-row" key={item.name}><div><strong>{item.name}</strong><span>{item.detail}</span></div><div className="breakdown-meter"><i style={{width: Math.max(4, item.accuracy) + "%" }} /></div><b>{pct(item.accuracy)}%</b></div>)}</div> : <Empty text={empty} />}</div>;
