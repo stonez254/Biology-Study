@@ -2,10 +2,11 @@ import { questionSeeds, type QuestionSeed } from "./questionSeeds";
 import { deepQuestionSeeds } from "./questionSeedsDeep";
 import { foundationQuestionSeeds } from "./questionSeedsFoundations";
 import { expandedQuestionSeeds } from "./questionSeedsExtended";
+import { expansion90QuestionSeeds } from "./questionSeedsExpansion90";
 
 export type { QuestionSeed };
 
-export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds];
+export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds];
 
 const lessonIds = new Set([
   "cellular-energy",
