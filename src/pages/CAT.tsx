@@ -17,25 +17,25 @@ function formatCountdown(target:Date|null){
 
 export default function CAT({ onExit, onProgress }: Props) {
   const config = ASSESSMENT_CONFIG.cat;
-  const [now,setNow]=useState(Date.now());
-  const progress=getCATStatus();
-  useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(timer);},[]);
-  void now;
-
-  if(!progress.eligible){
-    const waitingToday=progress.waitingForTodayRAT;
-    const label=waitingToday?"TODAY'S RAT IS REQUIRED":progress.ratDays===0?"CAT LOCKED":`${progress.remainingRATs} RAT${progress.remainingRATs===1?"":"s"} REMAINING`;
-    return <div className="content"><div className="empty-state"><span className="badge warning">{label}</span><h2>CAT is not available yet</h2><p>{waitingToday?"Complete today’s lesson, finish today’s RAT, and the CAT will unlock immediately after the third daily RAT.":progress.ratDays===0?"The CAT opens only after three daily RATs have been completed. Start with TODAY’S LESSON, scroll to 100%, then take the RAT.":"You have completed "+progress.ratDays+" consecutive daily RAT"+(progress.ratDays===1?"":"s")+". Complete the remaining daily RAT"+(progress.remainingRATs===1?"":"s")+" to unlock the CAT."}</p><div className="cat-countdown"><span>Earliest CAT opening</span><strong>{waitingToday?"After today’s RAT":formatCountdown(progress.nextOpenAt)}</strong><small>{progress.ratDays}/3 daily RATs completed in this CAT cycle</small></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
-  }
-
   const saved = getActiveCAT();
   const restored = saved ? hydrateQuestions(saved, questions) : [];
+  const [now,setNow]=useState(Date.now());
   const [testQuestions, setTestQuestions] = useState<Question[]>(restored.length === config.questionCount ? restored : () => shuffleQuestions(questions, config.questionCount));
   const [current, setCurrent] = useState(saved && restored.length === config.questionCount ? saved.current : 0);
   const [answers, setAnswers] = useState<Record<string, number>>(saved && restored.length === config.questionCount ? saved.answers : {});
   const [secondsLeft, setSecondsLeft] = useState(saved && restored.length === config.questionCount ? saved.secondsLeft : config.durationSeconds);
   const [submitted, setSubmitted] = useState(false);
   const [finished, setFinished] = useState(false);
+  const progress=getCATStatus();
+
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(timer);},[]);
+  void now;
+
+  if(!progress.eligible){
+    const waitingToday=progress.waitingForTodayRAT;
+    const label=waitingToday?"TODAY'S RAT IS REQUIRED":progress.ratDays===0?"CAT LOCKED":progress.ratDays>=3?"CAT OPENS TOMORROW":`${progress.remainingRATs} RAT${progress.remainingRATs===1?"":"s"} REMAINING`;
+    return <div className="content"><div className="empty-state"><span className="badge warning">{label}</span><h2>CAT is not available yet</h2><p>{waitingToday?"Complete today’s lesson, reach 100% reading progress, and finish today’s RAT. The CAT will be available tomorrow after the third daily RAT.":progress.ratDays===0?"The CAT opens only after three consecutive daily RATs. Start with TODAY’S LESSON, scroll to 100%, then take the RAT.":"You have completed "+progress.ratDays+" consecutive daily RAT"+(progress.ratDays===1?"":"s")+". "+(progress.ratDays>=3?"Your third RAT is complete. The CAT opens tomorrow.":"Complete the remaining daily RAT"+(progress.remainingRATs===1?"":"s")+" to unlock the CAT cycle.")}</p><div className="cat-countdown"><span>CAT countdown</span><strong>{formatCountdown(progress.nextOpenAt)}</strong><small>{progress.ratDays}/3 daily RATs completed in this CAT cycle</small></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+  }
 
   const finish = () => {
     if (finished) return;
