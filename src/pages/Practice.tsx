@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { questions, type Question } from "../data/questions";
 import { selectPracticeQuestions } from "../data/questionSelector";
+import { getProgress, recordPracticeSession, type StudyProgress } from "../data/progress";
 
-type Props = { onExit: () => void };
+type Props = { onExit: () => void; onProgress?: (progress: StudyProgress) => void };
 
 const SESSION_SIZES = [5, 10, 20] as const;
 const RECENT_KEY = "biology-practice-recent-question-ids";
@@ -22,7 +23,7 @@ function rememberQuestionIds(ids: string[]) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(next));
 }
 
-export default function Practice({ onExit }: Props) {
+export default function Practice({ onExit, onProgress }: Props) {
   const topics = useMemo(() => Array.from(new Set(questions.map(q => q.topic))).sort(), []);
   const difficulties = ["All", "Easy", "Medium", "Hard"] as const;
   const [topic, setTopic] = useState("All");
@@ -32,7 +33,7 @@ export default function Practice({ onExit }: Props) {
   const [current, setCurrent] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
-  const [combo, setCombo] = useState(0);
+  const [combo, setCombo] = useState(0);\n  const [maxCombo, setMaxCombo] = useState(0);
   const [finished, setFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
 
@@ -62,7 +63,7 @@ export default function Practice({ onExit }: Props) {
     setAnswer(index);
     if (isCorrect) {
       setCorrect(v => v + 1);
-      setCombo(v => v + 1);
+      setCombo(v => { const next = v + 1; setMaxCombo(m => Math.max(m, next)); return next; });
     } else {
       setCombo(0);
     }
@@ -148,7 +149,7 @@ export default function Practice({ onExit }: Props) {
         <div className="result-grid">
           <div><strong>{accuracy}%</strong><span>Accuracy</span></div>
           <div><strong>{session.length}</strong><span>Questions</span></div>
-          <div><strong>{combo}</strong><span>Final combo</span></div>
+          <div><strong>{maxCombo}</strong><span>Best combo</span></div>
         </div>
         <div className="result-actions">
           <button className="secondary-button" onClick={onExit}>Back to dashboard</button>
