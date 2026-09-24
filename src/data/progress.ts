@@ -30,7 +30,7 @@ function addDays(date:Date,days:number){const next=new Date(date);next.setDate(n
 function dateDifferenceInDays(later:string,earlier:string){return Math.round((dateAtMidnight(later).getTime()-dateAtMidnight(earlier).getTime())/86400000);}
 export function todayKey(){return localDateKey();}
 function updateStreak(progress:StudyProgress){const today=localDateKey(),yesterday=localDateKey(new Date(Date.now()-86400000));return progress.lastStudyDate===today?progress.streak:progress.lastStudyDate===yesterday?progress.streak+1:1;}
-export function markLessonRead(lessonId:string):StudyProgress{const progress=getProgress();const next={...progress,lessonReadDate:localDateKey(),lessonReadId:lessonId};saveProgress(next);return next;}
+export function markLessonRead(lessonId:string):StudyProgress{const progress=getProgress();const today=localDateKey();const already=progress.lessonReadDate===today&&progress.lessonReadId===lessonId;const next=already?progress:{...progress,lessonReadDate:today,lessonReadId:lessonId};if(!already)saveProgress(next);return next;}
 export function hasReadLessonToday(progress=getProgress(),lessonId?:string){return progress.lessonReadDate===localDateKey() && (!lessonId || progress.lessonReadId===lessonId);}
 export function getTodaysLessonId(){const lessons=["cellular-energy","human-tissues","human-regulation"];return lessons[Math.floor(Date.now()/86400000)%lessons.length];}
 export function hasCompletedRATToday(progress=getProgress()){const today=localDateKey();return progress.attempts.some(a=>a.type==="RAT"&&localDateKey(new Date(a.completedAt))===today);}
