@@ -43,7 +43,21 @@ export default function Practice({ onExit, onProgress }: Props) {
   const [maxCombo, setMaxCombo] = useState(0);
   const [finished, setFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const recordedSession = useRef(false);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {}
+  };
+
+  useEffect(() => {
+    const syncFullscreen = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", syncFullscreen);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreen);
+  }, []);
 
   const pool = useMemo(() => questions.filter(q =>
     (topic === "All" || q.topic === topic) &&
@@ -301,7 +315,12 @@ export default function Practice({ onExit, onProgress }: Props) {
         <h2>Question {current + 1} of {session.length}</h2>
         <p>{q.topic} • {q.difficulty} • No assessment points</p>
       </div>
-      <div className={`practice-combo ${combo > 0 ? "combo-active" : ""}`} aria-label={`Combo ${combo}`}><span>COMBO</span><strong className="combo-flame"><span aria-hidden="true">🔥</span><b>{combo}</b></strong></div>
+      <div className="test-header-actions">
+        <button className="secondary-button fullscreen-button" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit full screen" : "Open full screen"}>
+          {isFullscreen ? "⛶ Exit Full Screen" : "⛶ Full Screen"}
+        </button>
+              <div className={`practice-combo ${combo > 0 ? "combo-active" : ""}`} aria-label={`Combo ${combo}`}><span>COMBO</span><strong className="combo-flame"><span aria-hidden="true">🔥</span><b>{combo}</b></strong></div>
+      </div>
     </div>
     <div className="question-layout">
       <div className="question-card practice-question">
