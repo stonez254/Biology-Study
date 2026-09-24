@@ -161,6 +161,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
   </div>;
 }
 
+function Record({label,value}:{label:string;value:string}) { return <div className="record-card"><span>{label}</span><strong>{value}</strong></div>; }
 function buildRecommendations(data: any, progress: StudyProgress) {
   const items:{title:string;detail:string}[]=[];
   if (data.weakLessons.length) items.push({title:"Review " + data.weakLessons[0].name, detail:"Your tracked accuracy here is " + pct(data.weakLessons[0].accuracy) + "%. Revisit the lesson and use Practice before your next assessment."});
