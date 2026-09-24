@@ -145,3 +145,28 @@ h1,h2,h3,p { margin-top: 0; } h1 { margin-bottom: 0; font-size: clamp(24px,3vw,3
 @keyframes celebrationFloat{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}12%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--dx)),calc(-50% + var(--dy))) rotate(360deg) scale(1.15)}}
 @media(max-width:680px){.header-actions{gap:7px}.fullscreen-site-button{padding:9px 10px;font-size:12px}.test-header-actions{width:100%;justify-content:space-between}.fullscreen-button{flex:1}.celebration-card{padding:30px 20px}}
 @media(prefers-reduced-motion:reduce){.celebration-overlay,.celebration-card,.celebration-icon,.celebration-burst span{animation:none}.nav-item{transition:none}}
+
+/* Organic biology atmosphere */
+.app-shell{position:relative;isolation:isolate;overflow:hidden}
+.app-shell>*:not(.leaf-field){position:relative;z-index:1}
+.leaf-field{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.42}
+.leaf-field span{position:absolute;top:-12vh;left:var(--leaf-x);width:var(--leaf-size);height:calc(var(--leaf-size) * 1.65);border-radius:100% 0 100% 0;background:linear-gradient(135deg,#5fbd62,#176b3d);box-shadow:0 0 8px rgba(54,140,73,.18);transform:rotate(35deg);animation:falling-leaf var(--leaf-duration) linear var(--leaf-delay) infinite}
+.leaf-field span:nth-child(3n){border-radius:0 100% 0 100%;background:linear-gradient(135deg,#75c96d,#257847)}
+.leaf-field span:nth-child(4n){opacity:.72;transform:rotate(-25deg)}
+.leaf-field span:nth-child(5n){filter:blur(.25px)}
+@keyframes falling-leaf{0%{top:-12vh;transform:translate3d(0,0,0) rotate(15deg) scale(.75);opacity:0}8%{opacity:.75}35%{transform:translate3d(7vw,34vh,0) rotate(140deg) scale(1)}68%{transform:translate3d(-5vw,68vh,0) rotate(245deg) scale(.9)}100%{top:112vh;transform:translate3d(8vw,0,0) rotate(390deg) scale(.7);opacity:0}}
+.nav-item{gap:10px;min-height:46px;padding:9px 10px;border-radius:12px;background:transparent}
+.nav-item:hover{transform:none;border-color:#285049;background:rgba(24,78,68,.28)}
+.nav-item.active{background:rgba(15,118,110,.72);box-shadow:none}
+.nav-icon{width:30px;height:30px;display:grid;place-items:center;border:1px solid currentColor;border-radius:8px;font-size:10px;letter-spacing:.05em;font-weight:800;opacity:.8}
+.nav-item.active .nav-icon{opacity:1}
+.typing-fact{min-height:88px}
+.typing-caret{display:inline-block;margin-left:2px;font-size:.85em;color:#42c8b9;animation:typing-caret .8s steps(1,end) infinite}
+.fact-reference{display:flex;align-items:flex-start;gap:9px;flex-direction:column;margin-top:16px;padding-top:13px;border-top:1px solid #19322e}
+.fact-reference span{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#66d9cb}
+.fact-reference small{color:#718983;line-height:1.5}
+@keyframes typing-caret{50%{opacity:0}}
+:root[data-theme="light"] .fact-reference{border-color:#dbe7e4}
+:root[data-theme="light"] .fact-reference small{color:#667774}
+@media(max-width:680px){.leaf-field{opacity:.3}.nav-item{min-height:42px}.nav-icon{width:27px;height:27px}.typing-fact{min-height:115px}}
+@media(prefers-reduced-motion:reduce){.leaf-field span,.typing-caret{animation:none}.leaf-field span{opacity:.22}}
