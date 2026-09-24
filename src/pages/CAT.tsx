@@ -22,7 +22,7 @@ export default function CAT({ onExit, onProgress }: Props) {
     const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
     const score = correct * config.pointsPerCorrect;
     const accuracy = Math.round((correct / testQuestions.length) * 100);
-    const progress = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark });
+    const progress = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id));
     clearActiveCAT();
     onProgress(progress);
     setSubmitted(true);
