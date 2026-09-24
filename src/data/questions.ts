@@ -1,5 +1,6 @@
 export type Question = {
   id: string;
+  lessonId: string;
   topic: string;
   difficulty: "Easy" | "Medium" | "Hard";
   prompt: string;
@@ -12,6 +13,7 @@ export type Question = {
 export const questions: Question[] = [
   {
     id: "bio-001",
+    lessonId: "cellular-energy",
     topic: "Cell Biology",
     difficulty: "Easy",
     prompt: "Which organelle is primarily responsible for ATP production in most eukaryotic cells?",
@@ -22,6 +24,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-002",
+    lessonId: "cellular-energy",
     topic: "Cell Biology",
     difficulty: "Easy",
     prompt: "Which structure controls what enters and leaves the cell?",
@@ -32,6 +35,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-003",
+    lessonId: "cellular-energy",
     topic: "Genetics",
     difficulty: "Easy",
     prompt: "What molecule carries the genetic instructions used to build proteins?",
@@ -42,6 +46,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-004",
+    lessonId: "cellular-energy",
     topic: "Physiology",
     difficulty: "Medium",
     prompt: "Which organ primarily regulates blood glucose through insulin and glucagon?",
@@ -52,6 +57,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-005",
+    lessonId: "cellular-energy",
     topic: "Histology",
     difficulty: "Medium",
     prompt: "Which epithelial tissue is specialized for efficient diffusion?",
@@ -62,6 +68,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-006",
+    lessonId: "cellular-energy",
     topic: "Neuroanatomy",
     difficulty: "Medium",
     prompt: "Which part of a neuron usually receives incoming signals from other neurons?",
@@ -72,6 +79,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-007",
+    lessonId: "cellular-energy",
     topic: "Human Biology",
     difficulty: "Easy",
     prompt: "How many chambers does the normal human heart have?",
@@ -82,6 +90,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-008",
+    lessonId: "cellular-energy",
     topic: "Physiology",
     difficulty: "Medium",
     prompt: "Which hormone directly lowers blood glucose concentration?",
@@ -92,6 +101,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-009",
+    lessonId: "cellular-energy",
     topic: "Genetics",
     difficulty: "Medium",
     prompt: "During which process are homologous chromosomes separated?",
@@ -102,6 +112,7 @@ export const questions: Question[] = [
   },
   {
     id: "bio-010",
+    lessonId: "cellular-energy",
     topic: "Cell Biology",
     difficulty: "Easy",
     prompt: "Which cellular structure is the main site of protein synthesis?",
