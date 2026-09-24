@@ -2,6 +2,7 @@ import type { Question } from "./questions";
 import { ACTIVE_LESSONS } from "./lessons";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
+export type PracticeSession = { id: string; completedAt: string; total: number; correct: number; accuracy: number; maxCombo: number; questionIds: string[]; topic: string; difficulty: string; };
 export type AssessmentAttempt = { id: string; type: AssessmentType; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; questionIds: string[]; correctQuestionIds?: string[]; };
 export type RATAttempt = AssessmentAttempt;
 export type RevisionAttempt = { id: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; questionIds: string[]; };
@@ -18,7 +19,7 @@ export type SavedCAT = SavedAssessment;
 export type SavedRevision = Omit<SavedAssessment, "secondsLeft">;
 
 const PROGRESS_KEY="biology-study:progress", RAT_KEY="biology-study:active-rat", CAT_KEY="biology-study:active-cat", REVISION_KEY="biology-study:active-revision";
-const defaultProgress: StudyProgress={points:0,streak:0,lastStudyDate:null,attempts:[],missedQuestionIds:[],revisionAttempts:[],lessonReadDate:null,lessonReadId:null,ratRetakeDate:null,completedLessonIds:[],lessonHistory:[]};
+const defaultProgress: StudyProgress={points:0,streak:0,lastStudyDate:null,attempts:[],missedQuestionIds:[],revisionAttempts:[],lessonReadDate:null,lessonReadId:null,ratRetakeDate:null,completedLessonIds:[],lessonHistory:[],practiceSessions:[]};
 function read<T>(key:string,fallback:T):T{try{const v=localStorage.getItem(key);return v?JSON.parse(v) as T:fallback;}catch{return fallback;}}
 export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress>>(PROGRESS_KEY,defaultProgress);return{
   points:raw.points??0,streak:raw.streak??0,lastStudyDate:raw.lastStudyDate??null,
@@ -27,7 +28,7 @@ export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress
   lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,ratRetakeDate:raw.ratRetakeDate??null,
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[]
 };}
-export function saveProgress(progress:StudyProgress){localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}
+export function saveProgress(progress:StudyProgress){localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}\nexport function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
 function localDateKey(date=new Date()){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");}
 function dateAtMidnight(dateKey:string){const [year,month,day]=dateKey.split("-").map(Number);return new Date(year,month-1,day);}
 function addDays(date:Date,days:number){const next=new Date(date);next.setDate(next.getDate()+days);return next;}
