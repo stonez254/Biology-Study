@@ -142,5 +142,10 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
   }
 ];
 
-export const lessons: Lesson[] = lessonDefinitions.map(lesson => ({\n  ...lesson,\n  questionCount: getQuestionCountForLesson(lesson.id),\n}));\n\nexport const LESSON_IDS = lessons.map(lesson => lesson.id);
+export const lessons: Lesson[] = lessonDefinitions.map(lesson => ({
+  ...lesson,
+  questionCount: getQuestionCountForLesson(lesson.id),
+}));
+
+export const LESSON_IDS = lessons.map(lesson => lesson.id);
 export const ACTIVE_LESSONS = lessons.filter(lesson => lesson.questionCount >= 10);
