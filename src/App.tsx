@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import RAT from "./pages/RAT";
 import CAT from "./pages/CAT";
 import Revision from "./pages/Revision";
@@ -69,7 +69,7 @@ function Settings({account,onAccount}:{account:LocalAccount|null;onAccount:(acco
 }
 function Onboarding({onCreate}:{onCreate:(name:string,password:string)=>Promise<void>}){
  const [name,setName]=useState("");const [password,setPassword]=useState("");const [confirm,setConfirm]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
- const submit=async(e:React.FormEvent)=>{e.preventDefault();setError("");if(password.length<6){setError("Use at least 6 characters for your password.");return;}if(password!==confirm){setError("Passwords do not match.");return;}setBusy(true);try{await onCreate(name,password);}catch(err){setError(err instanceof Error?err.message:"Could not create the local account.");}finally{setBusy(false);}};
+ const submit=async(e:FormEvent)=>{e.preventDefault();setError("");if(password.length<6){setError("Use at least 6 characters for your password.");return;}if(password!==confirm){setError("Passwords do not match.");return;}setBusy(true);try{await onCreate(name,password);}catch(err){setError(err instanceof Error?err.message:"Could not create the local account.");}finally{setBusy(false);}};
  return <div className="onboarding-overlay"><form className="onboarding-card" onSubmit={submit}><span className="badge">FIRST VISIT</span><h2>Set up your Biology-Study profile</h2><p>Create your local student account. Your student name becomes your username and is used throughout the site.</p><label>Student name<input value={name} onChange={e=>setName(e.target.value)} autoFocus required placeholder="Your full student name"/></label><label>Password<input value={password} onChange={e=>setPassword(e.target.value)} type="password" minLength={6} required placeholder="At least 6 characters"/></label><label>Confirm password<input value={confirm} onChange={e=>setConfirm(e.target.value)} type="password" minLength={6} required placeholder="Repeat your password"/></label>{error&&<div className="form-error">{error}</div>}<button className="primary-button" disabled={busy}>{busy?"Creating profile...":"Create account"}</button><small>This version keeps the account on this browser. It is not server-side authentication.</small></form></div>;
 }
 function CookieBanner({onAccept}:{onAccept:()=>void}){
