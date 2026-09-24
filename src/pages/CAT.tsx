@@ -1,12 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
 import { questions, shuffleQuestions, type Question } from "../data/questions";
-import { clearActiveCAT, getActiveCAT, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, type StudyProgress } from "../data/progress";
+import { clearActiveCAT, getActiveCAT, getCATStatus, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, type StudyProgress } from "../data/progress";
 
 type Props = { onExit: () => void; onProgress: (progress: StudyProgress) => void };
 
+function formatCountdown(target:Date|null){
+  if(!target)return "00:00:00";
+  const seconds=Math.max(0,Math.ceil((target.getTime()-Date.now())/1000));
+  const days=Math.floor(seconds/86400);
+  const hours=Math.floor((seconds%86400)/3600);
+  const minutes=Math.floor((seconds%3600)/60);
+  const secs=seconds%60;
+  return days>0?String(days).padStart(2,"0")+":"+String(hours).padStart(2,"0")+":"+String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0"):String(hours).padStart(2,"0")+":"+String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0");
+}
+
 export default function CAT({ onExit, onProgress }: Props) {
   const config = ASSESSMENT_CONFIG.cat;
+  const [now,setNow]=useState(Date.now());
+  const progress=getCATStatus();
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(timer);},[]);
+  void now;
+
+  if(!progress.eligible){
+    const waitingToday=progress.waitingForTodayRAT;
+    const label=waitingToday?"TODAY'S RAT IS REQUIRED":progress.ratDays===0?"CAT LOCKED":`${progress.remainingRATs} RAT${progress.remainingRATs===1?"":"s"} REMAINING`;
+    return <div className="content"><div className="empty-state"><span className="badge warning">{label}</span><h2>CAT is not available yet</h2><p>{waitingToday?"Complete today’s lesson, finish today’s RAT, and the CAT will unlock immediately after the third daily RAT.":progress.ratDays===0?"The CAT opens only after three daily RATs have been completed. Start with TODAY’S LESSON, scroll to 100%, then take the RAT.":"You have completed "+progress.ratDays+" consecutive daily RAT"+(progress.ratDays===1?"":"s")+". Complete the remaining daily RAT"+(progress.remainingRATs===1?"":"s")+" to unlock the CAT."}</p><div className="cat-countdown"><span>Earliest CAT opening</span><strong>{waitingToday?"After today’s RAT":formatCountdown(progress.nextOpenAt)}</strong><small>{progress.ratDays}/3 daily RATs completed in this CAT cycle</small></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+  }
+
   const saved = getActiveCAT();
   const restored = saved ? hydrateQuestions(saved, questions) : [];
   const [testQuestions, setTestQuestions] = useState<Question[]>(restored.length === config.questionCount ? restored : () => shuffleQuestions(questions, config.questionCount));
@@ -22,9 +43,9 @@ export default function CAT({ onExit, onProgress }: Props) {
     const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
     const score = correct * config.pointsPerCorrect;
     const accuracy = Math.round((correct / testQuestions.length) * 100);
-    const progress = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id));
+    const next = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id));
     clearActiveCAT();
-    onProgress(progress);
+    onProgress(next);
     setSubmitted(true);
   };
 
@@ -59,8 +80,8 @@ export default function CAT({ onExit, onProgress }: Props) {
   if (submitted) {
     const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
     const accuracy = Math.round((correct / testQuestions.length) * 100);
-    return <div className="content"><div className="result-card"><span className={accuracy >= config.passmark ? "badge success" : "badge warning"}>{accuracy >= config.passmark ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>You answered {correct} of {testQuestions.length} questions correctly.</p><div className="result-grid"><div><strong>{correct}</strong><span>Correct</span></div><div><strong>{testQuestions.length - correct}</strong><span>Incorrect</span></div><div><strong>{accuracy}%</strong><span>Accuracy</span></div></div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button><button className="primary-button" onClick={() => { clearActiveCAT(); setTestQuestions(shuffleQuestions(questions, config.questionCount)); setCurrent(0); setAnswers({}); setSecondsLeft(config.durationSeconds); setSubmitted(false); setFinished(false); }}>Retake CAT</button></div></div></div>;
+    return <div className="content"><div className="result-card"><span className={accuracy >= config.passmark ? "badge success" : "badge warning"}>{accuracy >= config.passmark ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>You answered {correct} of {testQuestions.length} questions correctly. Incorrect questions are now in Revision.</p><div className="result-grid"><div><strong>{correct}</strong><span>Correct</span></div><div><strong>{testQuestions.length - correct}</strong><span>Incorrect</span></div><div><strong>{accuracy}%</strong><span>Accuracy</span></div></div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div></div>;
   }
 
-  return <div className="content"><div className="test-header"><div><span className="eyebrow">Continuous Assessment Test</span><h2>CAT</h2><p>{config.questionCount} questions • 30 minutes • {config.pointsPerCorrect} points per correct answer • Passmark {config.passmark}%</p></div><div className={secondsLeft <= 60 ? "timer danger" : "timer"}>{minutes}:{seconds}</div></div><div className="question-layout"><div className="question-card"><div className="question-meta"><span>Question {current + 1} of {testQuestions.length}</span><span>{question.topic} • {question.difficulty}</span></div><h3>{question.prompt}</h3><div className="options">{question.options.map((option, index) => <button key={option} className={answers[question.id] === index ? "option selected" : "option"} onClick={() => setAnswers(old => ({ ...old, [question.id]: index }))}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div><div className="question-actions"><button className="secondary-button" disabled={current === 0} onClick={() => setCurrent(value => value - 1)}>Previous</button>{current < testQuestions.length - 1 ? <button className="primary-button" onClick={() => setCurrent(value => value + 1)}>Next</button> : <button className="primary-button" onClick={finish}>Submit CAT</button>}</div></div><aside className="question-map"><strong>Progress</strong><span>{answered} / {testQuestions.length} answered</span><div className="map-grid">{testQuestions.map((item, index) => <button key={item.id} className={answers[item.id] !== undefined ? "map-dot answered" : "map-dot"} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div><small>Your answers and timer are saved automatically.</small></aside></div></div>;
+  return <div className="content"><div className="test-header"><div><span className="eyebrow">Continuous Assessment Test</span><h2>CAT</h2><p>{config.questionCount} questions • 30 minutes • {config.pointsPerCorrect} points per correct answer • Passmark {config.passmark}%</p></div><div className={secondsLeft <= 60 ? "timer danger" : "timer"}>{minutes}:{seconds}</div></div><div className="question-layout"><div className="question-card"><div className="question-meta"><span>Question {current + 1} of {testQuestions.length}</span><span>{question.topic} • {question.difficulty}</span></div><h3>{question.prompt}</h3><div className="options">{question.options.map((option, index) => <button key={option} className={answers[question.id] === index ? "option selected" : "option"} onClick={() => setAnswers(old => ({ ...old, [question.id]: index }))}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div><div className="question-actions"><button className="secondary-button" disabled={current === 0} onClick={() => setCurrent(value => value - 1)}>Previous</button>{current < testQuestions.length - 1 ? <button className="primary-button" onClick={() => setCurrent(value => value + 1)}>Next</button> : <button className="primary-button" onClick={finish}>Submit CAT</button>}</div></div><aside className="question-map"><strong>Progress</strong><span>{answered} / {testQuestions.length} answered</span><div className="map-grid">{testQuestions.map((item, index) => <button key={item.id} className={answers[item.id] !== undefined ? "map-dot answered" : "map-dot"} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div><small>Your answers and timer are saved automatically. CAT is one assessment per three-RAT cycle.</small></aside></div></div>;
 }
