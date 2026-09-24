@@ -36,7 +36,7 @@ function shuffleOptions(seed: QuestionSeed, variant: number): {
   }
 
   return {
-    options: [indexed[0].text, indexed[1].text, indexed[2].text],
+    options: [indexed[0].text, indexed[1].text, indexed[2].text] as [string, string, string],
     answer: indexed.findIndex((item) => item.index === seed.answer),
   };
 }
