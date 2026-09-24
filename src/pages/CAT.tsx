@@ -1,0 +1,66 @@
+import { useEffect, useMemo, useState } from "react";
+import { ASSESSMENT_CONFIG } from "../data/testConfig";
+import { questions, shuffleQuestions, type Question } from "../data/questions";
+import { clearActiveCAT, getActiveCAT, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, type StudyProgress } from "../data/progress";
+
+type Props = { onExit: () => void; onProgress: (progress: StudyProgress) => void };
+
+export default function CAT({ onExit, onProgress }: Props) {
+  const config = ASSESSMENT_CONFIG.cat;
+  const saved = getActiveCAT();
+  const restored = saved ? hydrateQuestions(saved, questions) : [];
+  const [testQuestions, setTestQuestions] = useState<Question[]>(restored.length === config.questionCount ? restored : () => shuffleQuestions(questions, config.questionCount));
+  const [current, setCurrent] = useState(saved && restored.length === config.questionCount ? saved.current : 0);
+  const [answers, setAnswers] = useState<Record<string, number>>(saved && restored.length === config.questionCount ? saved.answers : {});
+  const [secondsLeft, setSecondsLeft] = useState(saved && restored.length === config.questionCount ? saved.secondsLeft : config.durationSeconds);
+  const [submitted, setSubmitted] = useState(false);
+  const [finished, setFinished] = useState(false);
+
+  const finish = () => {
+    if (finished) return;
+    setFinished(true);
+    const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
+    const score = correct * config.pointsPerCorrect;
+    const accuracy = Math.round((correct / testQuestions.length) * 100);
+    const progress = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark });
+    clearActiveCAT();
+    onProgress(progress);
+    setSubmitted(true);
+  };
+
+  useEffect(() => {
+    if (submitted) return;
+    const timer = window.setInterval(() => setSecondsLeft(value => {
+      if (value <= 1) { window.clearInterval(timer); setSecondsLeft(0); return 0; }
+      return value - 1;
+    }), 1000);
+    return () => window.clearInterval(timer);
+  }, [submitted]);
+
+  useEffect(() => {
+    if (!submitted && secondsLeft === 0) finish();
+  }, [secondsLeft, submitted]);
+
+  useEffect(() => {
+    if (submitted) return;
+    saveActiveCAT({ questionIds: testQuestions.map(q => q.id), current, answers, secondsLeft, startedAt: saved?.startedAt ?? new Date().toISOString() });
+  }, [answers, current, secondsLeft, submitted, testQuestions, saved?.startedAt]);
+
+  const question = testQuestions[current];
+  const answered = Object.keys(answers).length;
+  const score = useMemo(() => testQuestions.reduce((total, item) => total + (answers[item.id] === item.answer ? config.pointsPerCorrect : 0), 0), [answers, testQuestions, config.pointsPerCorrect]);
+  const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
+  const seconds = (secondsLeft % 60).toString().padStart(2, "0");
+
+  if (testQuestions.length < config.questionCount) {
+    return <div className="content"><div className="empty-state"><span className="badge warning">QUESTION BANK</span><h2>CAT needs more questions</h2><p>The CAT is configured for {config.questionCount} unique questions, but the current bank only has {testQuestions.length}. Add more questions before starting a CAT.</p><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+  }
+
+  if (submitted) {
+    const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
+    const accuracy = Math.round((correct / testQuestions.length) * 100);
+    return <div className="content"><div className="result-card"><span className={accuracy >= config.passmark ? "badge success" : "badge warning"}>{accuracy >= config.passmark ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>You answered {correct} of {testQuestions.length} questions correctly.</p><div className="result-grid"><div><strong>{correct}</strong><span>Correct</span></div><div><strong>{testQuestions.length - correct}</strong><span>Incorrect</span></div><div><strong>{accuracy}%</strong><span>Accuracy</span></div></div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button><button className="primary-button" onClick={() => { clearActiveCAT(); setTestQuestions(shuffleQuestions(questions, config.questionCount)); setCurrent(0); setAnswers({}); setSecondsLeft(config.durationSeconds); setSubmitted(false); setFinished(false); }}>Retake CAT</button></div></div></div>;
+  }
+
+  return <div className="content"><div className="test-header"><div><span className="eyebrow">Continuous Assessment Test</span><h2>CAT</h2><p>{config.questionCount} questions • 30 minutes • {config.pointsPerCorrect} points per correct answer • Passmark {config.passmark}%</p></div><div className={secondsLeft <= 60 ? "timer danger" : "timer"}>{minutes}:{seconds}</div></div><div className="question-layout"><div className="question-card"><div className="question-meta"><span>Question {current + 1} of {testQuestions.length}</span><span>{question.topic} • {question.difficulty}</span></div><h3>{question.prompt}</h3><div className="options">{question.options.map((option, index) => <button key={option} className={answers[question.id] === index ? "option selected" : "option"} onClick={() => setAnswers(old => ({ ...old, [question.id]: index }))}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div><div className="question-actions"><button className="secondary-button" disabled={current === 0} onClick={() => setCurrent(value => value - 1)}>Previous</button>{current < testQuestions.length - 1 ? <button className="primary-button" onClick={() => setCurrent(value => value + 1)}>Next</button> : <button className="primary-button" onClick={finish}>Submit CAT</button>}</div></div><aside className="question-map"><strong>Progress</strong><span>{answered} / {testQuestions.length} answered</span><div className="map-grid">{testQuestions.map((item, index) => <button key={item.id} className={answers[item.id] !== undefined ? "map-dot answered" : "map-dot"} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div><small>Your answers and timer are saved automatically.</small></aside></div></div>;
+}
