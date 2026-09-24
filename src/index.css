@@ -251,3 +251,85 @@ h1,h2,h3,p { margin-top: 0; } h1 { margin-bottom: 0; font-size: clamp(24px,3vw,3
     width: 100%;
   }
 }
+
+
+/* True two-pane desktop layout: navigation and content scroll independently */
+@media (min-width: 1001px) {
+  html, body, #root { min-height: 100%; height: 100%; }
+  body { overflow: hidden; }
+  .app-shell { height: 100vh; min-height: 100vh; display: block; overflow: hidden; }
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 260px;
+    height: 100vh;
+    max-height: none;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  .main {
+    position: absolute;
+    inset: 0 0 0 260px;
+    width: auto;
+    height: 100vh;
+    min-height: 0;
+    margin: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 45;
+  }
+}
+
+@media (min-width: 681px) and (max-width: 1000px) {
+  html, body, #root { min-height: 100%; height: 100%; }
+  body { overflow: hidden; }
+  .app-shell { height: 100vh; min-height: 100vh; display: block; overflow: hidden; }
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 220px;
+    height: 100vh;
+    max-height: none;
+    overflow-y: auto;
+    z-index: 100;
+  }
+  .main {
+    position: absolute;
+    inset: 0 0 0 220px;
+    width: auto;
+    height: 100vh;
+    min-height: 0;
+    margin: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 680px) {
+  html, body, #root { min-height: 100%; }
+  body { overflow: auto; }
+  .app-shell { min-height: 100vh; height: auto; display: block; overflow: visible; }
+  .sidebar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    z-index: 100;
+  }
+  .main {
+    position: static;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    overflow: visible;
+  }
+}
