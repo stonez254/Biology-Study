@@ -1,4 +1,4 @@
-export type LessonSection = {
+import { getQuestionCountForLesson } from "./questionBank";\n\nexport type LessonSection = {
   label: string;
   title: string;
   body: string;
@@ -16,7 +16,7 @@ export type Lesson = {
   questionCount: number;
 };
 
-export const lessons: Lesson[] = [
+const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
   {
     id: "cellular-energy",
     sequence: 1,
@@ -140,5 +140,5 @@ export const lessons: Lesson[] = [
   }
 ];
 
-export const LESSON_IDS = lessons.map(lesson => lesson.id);
+export const lessons: Lesson[] = lessonDefinitions.map(lesson => ({\n  ...lesson,\n  questionCount: getQuestionCountForLesson(lesson.id),\n}));\n\nexport const LESSON_IDS = lessons.map(lesson => lesson.id);
 export const ACTIVE_LESSONS = lessons.filter(lesson => lesson.questionCount >= 10);
