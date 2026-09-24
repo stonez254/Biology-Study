@@ -3,6 +3,8 @@ import { deepQuestionSeeds } from "./questionSeedsDeep";
 import { foundationQuestionSeeds } from "./questionSeedsFoundations";
 import { expandedQuestionSeeds } from "./questionSeedsExtended";
 
+export type { QuestionSeed };
+
 export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds];
 
 const lessonIds = new Set([
