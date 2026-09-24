@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
-import { questions, shuffleQuestions, type Question } from "../data/questions";
-import { clearActiveCAT, getActiveCAT, getCATStatus, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, type StudyProgress } from "../data/progress";
+import { questions, type Question } from "../data/questions";
+import { selectCATQuestions } from "../data/questionSelector";
+import { clearActiveCAT, getActiveCAT, getCATStatus, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, getProgress, type StudyProgress } from "../data/progress";
 
 type Props = { onExit: () => void; onProgress: (progress: StudyProgress) => void };
 
@@ -18,9 +19,10 @@ function formatCountdown(target:Date|null){
 export default function CAT({ onExit, onProgress }: Props) {
   const config = ASSESSMENT_CONFIG.cat;
   const saved = getActiveCAT();
+  const studyProgress = getProgress();
   const restored = saved ? hydrateQuestions(saved, questions) : [];
   const [now,setNow]=useState(Date.now());
-  const [testQuestions, setTestQuestions] = useState<Question[]>(restored.length === config.questionCount ? restored : () => shuffleQuestions(questions, config.questionCount));
+  const [testQuestions, setTestQuestions] = useState<Question[]>(restored.length === config.questionCount ? restored : () => selectCATQuestions(questions, config.questionCount, studyProgress.completedLessonIds, studyProgress.attempts.flatMap(a => a.questionIds ?? [])));
   const [current, setCurrent] = useState(saved && restored.length === config.questionCount ? saved.current : 0);
   const [answers, setAnswers] = useState<Record<string, number>>(saved && restored.length === config.questionCount ? saved.answers : {});
   const [secondsLeft, setSecondsLeft] = useState(saved && restored.length === config.questionCount ? saved.secondsLeft : config.durationSeconds);
@@ -43,7 +45,7 @@ export default function CAT({ onExit, onProgress }: Props) {
     const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
     const score = correct * config.pointsPerCorrect;
     const accuracy = Math.round((correct / testQuestions.length) * 100);
-    const next = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id));
+    const next = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark, questionIds: testQuestions.map(item => item.id) }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id));
     clearActiveCAT();
     onProgress(next);
     setSubmitted(true);
