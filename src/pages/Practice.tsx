@@ -4,6 +4,22 @@ import { questions, shuffleQuestions, type Question } from "../data/questions";
 type Props = { onExit: () => void };
 
 const SESSION_SIZES = [5, 10, 20] as const;
+const RECENT_KEY = "biology-practice-recent-question-ids";
+const RECENT_LIMIT = 100;
+
+function getRecentIds(): string[] {
+  try {
+    const value = JSON.parse(localStorage.getItem(RECENT_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberQuestionIds(ids: string[]) {
+  const next = [...ids, ...getRecentIds()].filter((id, index, all) => all.indexOf(id) === index).slice(0, RECENT_LIMIT);
+  localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+}
 
 export default function Practice({ onExit }: Props) {
   const topics = useMemo(() => Array.from(new Set(questions.map(q => q.topic))).sort(), []);
@@ -24,7 +40,11 @@ export default function Practice({ onExit }: Props) {
   ), [topic, difficulty]);
 
   const start = () => {
-    const chosen = shuffleQuestions(pool, Math.min(size, pool.length));
+    const recent = new Set(getRecentIds());
+    const freshPool = pool.filter(question => !recent.has(question.id));
+    const source = freshPool.length >= Math.min(size, pool.length) ? freshPool : [...freshPool, ...pool.filter(question => recent.has(question.id))];
+    const chosen = shuffleQuestions(source, Math.min(size, pool.length));
+    rememberQuestionIds(chosen.map(question => question.id));
     setSession(chosen);
     setCurrent(0);
     setAnswer(null);
