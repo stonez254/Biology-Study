@@ -64,7 +64,7 @@ export default function Practice({ onExit, onProgress }: Props) {
     (difficulty === "All" || q.difficulty === difficulty)
   ), [topic, difficulty]);
 
-  const start = () => {
+  const start = (modeOverride: PracticeMode = mode) => {
     const recent = new Set(getRecentIds());
     const progress = getProgress();
     const priorityScores = new Map<string, number>();
@@ -100,20 +100,20 @@ export default function Practice({ onExit, onProgress }: Props) {
       const type = typeFailures.get(question.questionType ?? "concept") ?? 0;
       const difficulty = difficultyFailures.get(question.difficulty) ?? 0;
 
-      if (mode === "Adaptive") {
+      if (modeOverride === "Adaptive") {
         score += lesson * 2 + subtopic * 3 + type + difficulty;
         score += priorityScores.get(question.id) ?? 0;
-      } else if (mode === "Weak Areas") {
+      } else if (modeOverride === "Weak Areas") {
         score += lesson * 4 + subtopic * 5 + type * 2 + difficulty * 2;
         score += priorityScores.get(question.id) ?? 0;
-      } else if (mode === "Difficulty Focus") {
+      } else if (modeOverride === "Difficulty Focus") {
         score += difficulty * 3;
         if (difficulty === 0 && question.difficulty === "Hard") score += 2;
-      } else if (mode === "Topic Focus") {
+      } else if (modeOverride === "Topic Focus") {
         score += question.topic === topic ? 8 : 0;
       }
 
-      if (mode !== "Mixed") priorityScores.set(question.id, score);
+      if (modeOverride !== "Mixed") priorityScores.set(question.id, score);
     }
 
     const freshPool = pool.filter(question => !recent.has(question.id));
@@ -296,7 +296,7 @@ export default function Practice({ onExit, onProgress }: Props) {
         </div>
         <div className="result-actions">
           <button className="secondary-button" onClick={onExit}>Back to dashboard</button>
-          <button className="secondary-button" onClick={() => { setMode("Weak Areas"); start(); }}>Practice weak areas</button>
+          <button className="secondary-button" onClick={() => { setMode("Weak Areas"); start("Weak Areas"); }}>Practice weak areas</button>
           <button className="primary-button" onClick={start}>Practice again</button>
         </div>
       </div>
