@@ -2,7 +2,7 @@ import type { Question } from "./questions";
 import { ACTIVE_LESSONS } from "./lessons";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
-export type PracticeSession = { id: string; completedAt: string; total: number; correct: number; accuracy: number; maxCombo: number; questionIds: string[]; topic: string; difficulty: string; };
+export type PracticeSession = { id: string; completedAt: string; total: number; correct: number; accuracy: number; maxCombo: number; questionIds: string[]; correctQuestionIds: string[]; incorrectQuestionIds: string[]; timedOutQuestionIds: string[]; topic: string; difficulty: string; };
 export type AssessmentAttempt = { id: string; type: AssessmentType; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; questionIds: string[]; correctQuestionIds?: string[]; };
 export type RATAttempt = AssessmentAttempt;
 export type RevisionAttempt = { id: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; questionIds: string[]; };
@@ -28,7 +28,7 @@ export function getProgress():StudyProgress{const raw=read<Partial<StudyProgress
   missedQuestionIds:raw.missedQuestionIds??[],revisionAttempts:raw.revisionAttempts??[],
   lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,ratRetakeDate:raw.ratRetakeDate??null,
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[],
-  practiceSessions:raw.practiceSessions??[]
+  practiceSessions:(raw.practiceSessions??[]).map((s:any)=>({...s,questionIds:s.questionIds??[],correctQuestionIds:s.correctQuestionIds??[],incorrectQuestionIds:s.incorrectQuestionIds??[],timedOutQuestionIds:s.timedOutQuestionIds??[]}))
 };}
 export function saveProgress(progress:StudyProgress){localStorage.setItem(PROGRESS_KEY,JSON.stringify(progress));}
 export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
