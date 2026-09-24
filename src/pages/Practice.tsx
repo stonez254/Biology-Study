@@ -94,6 +94,12 @@ export default function Practice({ onExit }: Props) {
     setAnswer(null);
   };
 
+  useEffect(() => {
+    if (answer !== -1) return;
+    const advance = window.setTimeout(() => next(), 450);
+    return () => window.clearTimeout(advance);
+  }, [answer]);
+
   if (!session.length) {
     return <div className="content">
       <div className="practice-hero panel">
