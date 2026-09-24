@@ -161,6 +161,7 @@ export default function Practice({ onExit }: Props) {
   const q = session[current];
   const timedOut = answer === -1;
   const answeredCorrectly = answer !== null && answer >= 0 && answer === q.answer;
+  const timerTone = timeLeft >= 8 ? "green" : timeLeft >= 6 ? "amber" : timeLeft >= 3 ? "yellow" : "red";
 
   return <div className="content">
     <div className="test-header">
@@ -169,12 +170,12 @@ export default function Practice({ onExit }: Props) {
         <h2>Question {current + 1} of {session.length}</h2>
         <p>{q.topic} • {q.difficulty} • No assessment points</p>
       </div>
-      <div className="practice-combo"><span>COMBO</span><strong>×{combo}</strong></div>
+      <div className={`practice-combo ${combo > 0 ? "combo-active" : ""}`} aria-label={`Combo ${combo}`}><span>COMBO</span><strong className="combo-flame"><span aria-hidden="true">🔥</span><b>{combo}</b></strong></div>
     </div>
     <div className="question-layout">
       <div className="question-card practice-question">
         <div className="question-meta"><span>{correct} correct so far</span><span>{answer === null ? "Choose an answer" : timedOut ? "Time expired" : answeredCorrectly ? "Correct!" : "Not quite"}</span></div>
-        {answer === null && <div className="practice-timer" aria-live="polite"><div className="practice-timer-track"><div className="practice-timer-string" style={{ width: `${timeLeft * 10}%` }} /></div><span>{timeLeft}s</span></div>}
+        {answer === null && <div className={`practice-timer ${timerTone}`} aria-live="polite"><div className="practice-timer-track" aria-hidden="true"><div className="practice-timer-string" style={{ width: `${timeLeft * 10}%` }}><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /></div></div><span>{timeLeft}s</span></div>}
         <h3>{q.prompt}</h3>
         <div className="options">
           {q.options.map((option, index) => {
