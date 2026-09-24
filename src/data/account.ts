@@ -40,3 +40,20 @@ export async function verifyLocalPassword(password: string): Promise<boolean> {
 export function hasCookieConsent(): boolean { return document.cookie.split("; ").some(c => c === COOKIE_CONSENT + "=accepted"); }
 export function acceptCookieConsent() { document.cookie = COOKIE_CONSENT + "=accepted; max-age=31536000; path=/; SameSite=Lax"; }
 export function clearLocalAccount() { localStorage.removeItem(ACCOUNT_KEY); }
+
+const ACCOUNT_DATA_KEYS = [
+  "biology-study:progress",
+  "biology-study:active-rat",
+  "biology-study:active-cat",
+  "biology-study:active-revision",
+  "biology-study:nodes",
+  "biology-study:validation-queue",
+] as const;
+
+export function clearAccountStudyData(accountId: string): void {
+  for (const key of ACCOUNT_DATA_KEYS) localStorage.removeItem(\`${key}:${accountId}\`);
+  localStorage.removeItem("biology-study:progress");
+  localStorage.removeItem("biology-study:nodes");
+  localStorage.removeItem("biology-study:validation-queue");
+}
+
