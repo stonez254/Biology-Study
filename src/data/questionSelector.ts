@@ -52,6 +52,7 @@ function selectSmart(
     typeWeights?: Record<QuestionType, number>;
     lessonCoverage?: boolean;
     recentIds?: Iterable<string>;
+    priorityScores?: ReadonlyMap<string, number>;
   } = {},
 ): Question[] {
   const target = Math.min(count, pool.length);
@@ -96,6 +97,9 @@ function selectSmart(
       let score = difficultyNeed * 5 + typeNeed * 4;
       if (options.lessonCoverage) score += lessonCount === 0 ? 5 : Math.max(0, 2 - lessonCount);
       score += subtopicCount === 0 ? 3 : 0;
+
+      const priority = options.priorityScores?.get(question.id) ?? 0;
+      score += priority;
 
       // Fresh questions are preferred by source construction; this extra penalty
       // matters only when the bank is too small to avoid all recent questions.
@@ -157,10 +161,12 @@ export function selectPracticeQuestions(
   pool: Question[],
   count: number,
   recentIds: Iterable<string> = [],
+  priorityScores: ReadonlyMap<string, number> = new Map(),
 ): Question[] {
   return selectSmart(pool, count, {
     typeWeights: { concept: 1, application: 3, scenario: 3, identification: 2, calculation: 1 },
     lessonCoverage: true,
     recentIds,
+    priorityScores,
   });
 }
