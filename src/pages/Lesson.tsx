@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { getTodaysLessonId, markLessonRead, type StudyProgress } from "../data/progress";
+import { getProgress, getTodaysLessonId, hasReadLessonToday, markLessonRead, type StudyProgress } from "../data/progress";
 
 type Props={onRead:(progress:StudyProgress)=>void;onExit:()=>void};
 
 export default function Lesson({onRead,onExit}:Props){
- const [confirmed,setConfirmed]=useState(false);
- const [readPercent,setReadPercent]=useState(0);
- const lessonRef=useRef<HTMLElement|null>(null);
  const lessonId=getTodaysLessonId();
+ const alreadyRead=hasReadLessonToday(getProgress(),lessonId);
+ const [confirmed,setConfirmed]=useState(alreadyRead);
+ const [readPercent,setReadPercent]=useState(alreadyRead?100:0);
+ const lessonRef=useRef<HTMLElement|null>(null);
  const lessons:Record<string,{title:string;sections:[string,string,string,string][]}> = {
   "cellular-energy":{title:"Cellular Energy & ATP",sections:[
    ["01 • Core concept","Why cells need ATP","Cells constantly perform work such as transport, synthesis, signalling and muscle contraction. ATP provides immediately usable chemical energy for many of these processes.","ATP links metabolism to cellular work."],
@@ -35,7 +36,7 @@ export default function Lesson({onRead,onExit}:Props){
    if(!element)return;
    const max=element.scrollHeight-element.clientHeight;
    const percent=max<=1?100:Math.min(100,Math.round((element.scrollTop/max)*100));
-   setReadPercent(percent);
+   setReadPercent(value=>Math.max(value,percent));
  };
 
  useEffect(()=>{
