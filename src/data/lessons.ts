@@ -25,6 +25,7 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
     sequence: 1,
     title: "Cellular Energy & ATP",
     topic: "Cell Biology",
+    bankFocus: ["ATP and cellular work","Glycolysis","Citric acid cycle","Electron transport chain","Oxidative phosphorylation","Oxygen as final electron acceptor"],
     objectives: ["Explain ATP as the cell's immediate energy currency.", "Locate the major stages of aerobic respiration.", "Explain the role of oxygen in oxidative phosphorylation."],
     sections: [
       {label:"01 • Core concept",title:"Why cells need ATP",body:"Cells constantly perform work such as transport, synthesis, signalling and muscle contraction. ATP provides immediately usable chemical energy for many of these processes.",highYield:"ATP links metabolism to cellular work."},
