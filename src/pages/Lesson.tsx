@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { lessons } from "../data/lessons";
+import { getLessonBankSummary, lessons } from "../data/lessons";
 import { getProgress, getTodaysLessonId, hasReadLessonToday, markLessonRead, type StudyProgress } from "../data/progress";
 
 type Props={onRead:(progress:StudyProgress)=>void;onExit:()=>void};
@@ -8,6 +8,7 @@ export default function Lesson({onRead,onExit}:Props){
  const todayId=getTodaysLessonId();
  const progress=getProgress();
  const selected=lessons.find(l=>l.id===todayId)??lessons[0];
+ const bankSummary=getLessonBankSummary(selected.id);
  const [confirmed,setConfirmed]=useState(hasReadLessonToday(progress,todayId));
  const [readPercent,setReadPercent]=useState(hasReadLessonToday(progress,todayId)?100:0);
  const lessonRef=useRef<HTMLElement|null>(null);
@@ -57,6 +58,22 @@ export default function Lesson({onRead,onExit}:Props){
      <div className="progress"><i style={{width:`${readPercent}%`}}/></div>
      <small>{readPercent<100?"Read and scroll through the full lesson to unlock TAKE RAT.":"100% complete. TAKE RAT is now unlocked."}</small>
    </div>
+
+   <section className="lesson-bank-panel panel">
+     <div>
+       <span className="eyebrow">Question Bank Connection</span>
+       <h3>This lesson is backed by {bankSummary.total} questions</h3>
+       <p>These questions are the source used later by RAT, CAT, Revision and Practice.</p>
+     </div>
+     <div className="lesson-bank-stats">
+       <span><strong>{bankSummary.easy}</strong> Easy</span>
+       <span><strong>{bankSummary.medium}</strong> Medium</span>
+       <span><strong>{bankSummary.hard}</strong> Hard</span>
+     </div>
+     <div className="lesson-bank-focus">
+       {selected.bankFocus.map(item=><span key={item}>{item}</span>)}
+     </div>
+   </section>
 
    <article ref={lessonRef} onScroll={updateReadProgress} className="lesson-card lesson-scroll">
      {selected.sections.map(section=><section key={section.title}>
