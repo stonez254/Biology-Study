@@ -6,6 +6,8 @@ import { getProgress, recordPracticeSession, type StudyProgress } from "../data/
 type Props = { onExit: () => void; onProgress?: (progress: StudyProgress) => void };
 
 const SESSION_SIZES = [5, 10, 20] as const;
+const PRACTICE_MODES = ["Adaptive", "Weak Areas", "Mixed", "Difficulty Focus", "Topic Focus"] as const;
+type PracticeMode = (typeof PRACTICE_MODES)[number];
 const RECENT_KEY = "biology-practice-recent-question-ids";
 const RECENT_LIMIT = 100;
 
@@ -26,6 +28,7 @@ function rememberQuestionIds(ids: string[]) {
 export default function Practice({ onExit, onProgress }: Props) {
   const topics = useMemo(() => Array.from(new Set(questions.map(q => q.topic))).sort(), []);
   const difficulties = ["All", "Easy", "Medium", "Hard"] as const;
+  const [mode, setMode] = useState<PracticeMode>("Adaptive");
   const [topic, setTopic] = useState("All");
   const [difficulty, setDifficulty] = useState<(typeof difficulties)[number]>("All");
   const [size, setSize] = useState<number>(10);
@@ -50,9 +53,22 @@ export default function Practice({ onExit, onProgress }: Props) {
     const recent = new Set(getRecentIds());
     const progress = getProgress();
     const priorityScores = new Map<string, number>();
+    const lessonFailures = new Map<string, number>();
+    const subtopicFailures = new Map<string, number>();
+    const typeFailures = new Map<string, number>();
+    const difficultyFailures = new Map<string, number>();
+
     for (const practice of progress.practiceSessions ?? []) {
       for (const id of practice.incorrectQuestionIds ?? []) {
         priorityScores.set(id, (priorityScores.get(id) ?? 0) + 6);
+        const question = questions.find(q => q.id === id);
+        if (!question) continue;
+        lessonFailures.set(question.lessonId, (lessonFailures.get(question.lessonId) ?? 0) + 1);
+        const subtopic = question.subtopic ?? question.topic;
+        subtopicFailures.set(subtopic, (subtopicFailures.get(subtopic) ?? 0) + 1);
+        const type = question.questionType ?? "concept";
+        typeFailures.set(type, (typeFailures.get(type) ?? 0) + 1);
+        difficultyFailures.set(question.difficulty, (difficultyFailures.get(question.difficulty) ?? 0) + 1);
       }
       for (const id of practice.timedOutQuestionIds ?? []) {
         priorityScores.set(id, (priorityScores.get(id) ?? 0) + 3);
@@ -61,6 +77,30 @@ export default function Practice({ onExit, onProgress }: Props) {
         priorityScores.set(id, Math.max(0, (priorityScores.get(id) ?? 0) - 2));
       }
     }
+
+    for (const question of pool) {
+      let score = 0;
+      const lesson = lessonFailures.get(question.lessonId) ?? 0;
+      const subtopic = subtopicFailures.get(question.subtopic ?? question.topic) ?? 0;
+      const type = typeFailures.get(question.questionType ?? "concept") ?? 0;
+      const difficulty = difficultyFailures.get(question.difficulty) ?? 0;
+
+      if (mode === "Adaptive") {
+        score += lesson * 2 + subtopic * 3 + type + difficulty;
+        score += priorityScores.get(question.id) ?? 0;
+      } else if (mode === "Weak Areas") {
+        score += lesson * 4 + subtopic * 5 + type * 2 + difficulty * 2;
+        score += priorityScores.get(question.id) ?? 0;
+      } else if (mode === "Difficulty Focus") {
+        score += difficulty * 3;
+        if (difficulty === 0 && question.difficulty === "Hard") score += 2;
+      } else if (mode === "Topic Focus") {
+        score += question.topic === topic ? 8 : 0;
+      }
+
+      if (mode !== "Mixed") priorityScores.set(question.id, score);
+    }
+
     const freshPool = pool.filter(question => !recent.has(question.id));
     const source = freshPool.length >= Math.min(size, pool.length) ? freshPool : [...freshPool, ...pool.filter(question => recent.has(question.id))];
     const chosen = selectPracticeQuestions(source, Math.min(size, pool.length), recent, priorityScores);
@@ -132,6 +172,11 @@ export default function Practice({ onExit, onProgress }: Props) {
         <h2>Train without pressure.</h2>
         <p>Practice questions are for learning only. They do not award RAT, CAT, or revision points.</p>
         <div className="practice-controls">
+          <label>Mode
+            <select value={mode} onChange={e => setMode(e.target.value as PracticeMode)}>
+              {PRACTICE_MODES.map(item => <option key={item}>{item}</option>)}
+            </select>
+          </label>
           <label>Topic
             <select value={topic} onChange={e => setTopic(e.target.value)}>
               <option>All</option>
@@ -154,6 +199,10 @@ export default function Practice({ onExit, onProgress }: Props) {
           <button className="primary-button" disabled={!pool.length} onClick={start}>Start Practice</button>
           <button className="secondary-button" onClick={onExit}>Back to dashboard</button>
         </div>
+      </div>
+      <div className="panel practice-mode-help">
+        <strong>{mode}</strong>
+        <span>{mode === "Adaptive" ? "Uses your recent mistakes while keeping sessions balanced." : mode === "Weak Areas" ? "Strongly targets lessons, subtopics and question types where you struggle." : mode === "Mixed" ? "Uses the normal balanced selection without performance targeting." : mode === "Difficulty Focus" ? "Uses your selected difficulty as the main practice focus." : "Prioritizes the topic selected above."}</span>
       </div>
       <div className="practice-rules">
         <div className="panel"><strong>Instant feedback</strong><span>See whether you are right immediately.</span></div>
