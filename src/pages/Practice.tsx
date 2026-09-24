@@ -33,7 +33,8 @@ export default function Practice({ onExit, onProgress }: Props) {
   const [current, setCurrent] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
-  const [combo, setCombo] = useState(0);\n  const [maxCombo, setMaxCombo] = useState(0);
+  const [combo, setCombo] = useState(0);
+  const [maxCombo, setMaxCombo] = useState(0);
   const [finished, setFinished] = useState(false);
   const [timeLeft, setTimeLeft] = useState(10);
 
