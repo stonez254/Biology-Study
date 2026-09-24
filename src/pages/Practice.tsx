@@ -33,6 +33,9 @@ export default function Practice({ onExit, onProgress }: Props) {
   const [current, setCurrent] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
   const [correct, setCorrect] = useState(0);
+  const [correctQuestionIds, setCorrectQuestionIds] = useState<string[]>([]);
+  const [incorrectQuestionIds, setIncorrectQuestionIds] = useState<string[]>([]);
+  const [timedOutQuestionIds, setTimedOutQuestionIds] = useState<string[]>([]);
   const [combo, setCombo] = useState(0);
   const [maxCombo, setMaxCombo] = useState(0);
   const [finished, setFinished] = useState(false);
@@ -53,6 +56,9 @@ export default function Practice({ onExit, onProgress }: Props) {
     setCurrent(0);
     setAnswer(null);
     setCorrect(0);
+    setCorrectQuestionIds([]);
+    setIncorrectQuestionIds([]);
+    setTimedOutQuestionIds([]);
     setCombo(0);
     setFinished(false);
     setTimeLeft(10);
@@ -64,8 +70,10 @@ export default function Practice({ onExit, onProgress }: Props) {
     setAnswer(index);
     if (isCorrect) {
       setCorrect(v => v + 1);
+      setCorrectQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
       setCombo(v => { const next = v + 1; setMaxCombo(m => Math.max(m, next)); return next; });
     } else {
+      setIncorrectQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
       setCombo(0);
     }
   };
@@ -78,6 +86,8 @@ export default function Practice({ onExit, onProgress }: Props) {
         if (value <= 1) {
           window.clearInterval(timer);
           setAnswer(-1);
+          setTimedOutQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
+          setIncorrectQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
           setCombo(0);
           return 0;
         }
