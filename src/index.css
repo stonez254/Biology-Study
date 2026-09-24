@@ -149,7 +149,7 @@ h1,h2,h3,p { margin-top: 0; } h1 { margin-bottom: 0; font-size: clamp(24px,3vw,3
 /* Organic biology atmosphere */
 .app-shell{position:relative;isolation:isolate;overflow:hidden}
 .app-shell>*:not(.leaf-field){position:relative;z-index:1}
-.leaf-field{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;opacity:.42}
+.leaf-field{position:fixed;inset:0;z-index:2;pointer-events:none;overflow:hidden;opacity:.42}
 .leaf-field span{position:absolute;top:-12vh;left:var(--leaf-x);width:var(--leaf-size);height:calc(var(--leaf-size) * 1.65);border-radius:100% 0 100% 0;background:linear-gradient(135deg,#5fbd62,#176b3d);box-shadow:0 0 8px rgba(54,140,73,.18);transform:rotate(35deg);animation:falling-leaf var(--leaf-duration) linear var(--leaf-delay) infinite}
 .leaf-field span:nth-child(3n){border-radius:0 100% 0 100%;background:linear-gradient(135deg,#75c96d,#257847)}
 .leaf-field span:nth-child(4n){opacity:.72;transform:rotate(-25deg)}
