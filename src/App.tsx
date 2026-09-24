@@ -19,7 +19,7 @@ function App(){
  useEffect(()=>{const sync=()=>setIsFullscreen(Boolean(document.fullscreenElement));document.addEventListener("fullscreenchange",sync);return()=>document.removeEventListener("fullscreenchange",sync);},[]);
  const toggleFullscreen=async()=>{try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch{}};
  const completeTask=(next:StudyProgress,message:string)=>{setProgress(next);setCelebration(message);window.setTimeout(()=>setCelebration(null),2800);};
- const greeting=useMemo(()=>{const h=time.getHours();return h<12?"Good Morning":h<17?"Good Afternoon":h<21?"Good Evening":"Good Night";},[time]);
+ const greeting=useMemo(()=>{const h=time.getHours();return h<12?"Good Morning":h<18?"Good Afternoon":"Good Evening";},[time]);
  const dailyFact=useMemo(()=>getDailyFact(time),[time]);
  const [typedFact,setTypedFact]=useState("");
  useEffect(()=>{setTypedFact("");let index=0;const timer=window.setInterval(()=>{index+=1;setTypedFact(dailyFact.fact.slice(0,index));if(index>=dailyFact.fact.length)window.clearInterval(timer);},28);return()=>window.clearInterval(timer);},[dailyFact]);
