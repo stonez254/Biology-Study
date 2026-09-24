@@ -592,3 +592,13 @@ nav { gap: 7px; }
 .student-username{display:inline-block;margin-top:4px;color:#39ff14;font-size:11px;letter-spacing:.08em;text-shadow:0 0 8px rgba(57,255,20,.45)}
 .remember-row{display:flex!important;grid-template-columns:none!important;align-items:center;gap:9px!important;color:#91b9ba!important}
 .remember-row input{width:16px!important;height:16px;padding:0!important;accent-color:#39ff14}
+
+
+/* DESTRUCTIVE ACTION CONFIRMATION */
+.danger-button{border-color:#ff355e!important;color:#fff!important;background:linear-gradient(135deg,#351018 0%,#64152a 55%,#34101c 100%)!important;box-shadow:0 0 8px rgba(255,53,94,.5),0 0 20px rgba(255,53,94,.16)!important}
+.danger-button:hover{border-color:#ff6b86!important;background:linear-gradient(135deg,#521321 0%,#8b1835 55%,#4b1220 100%)!important;box-shadow:0 0 12px rgba(255,53,94,.7),0 0 26px rgba(255,53,94,.25)!important}
+.confirm-overlay{position:fixed;inset:0;z-index:240;display:grid;place-items:center;padding:20px;background:rgba(0,2,4,.9);backdrop-filter:blur(16px)}
+.confirm-card{width:min(520px,100%);padding:28px;border:1px solid #ff355e;border-radius:20px;background:radial-gradient(circle at 80% 0,rgba(255,53,94,.13),transparent 42%),#031215;box-shadow:0 0 24px rgba(255,53,94,.35),0 0 70px rgba(0,246,255,.1);display:grid;gap:14px}
+.confirm-card h2{margin:0;font-size:28px}.confirm-card p,.confirm-card small{color:#91b9ba;line-height:1.55}.confirm-card label{display:grid;gap:7px;color:#bde8e8;font-size:12px;font-weight:700}.confirm-card input{width:100%;border:1px solid rgba(255,53,94,.45);border-radius:10px;padding:12px 13px;background:#061b1e;color:#fff;outline:none}.confirm-card input:focus{border-color:#ff355e;box-shadow:0 0 12px rgba(255,53,94,.25)}
+.danger-badge{border-color:#ff355e!important;color:#ff8ca3!important}.danger-action{background:linear-gradient(135deg,#7a1630 0%,#e52c57 52%,#ff355e 100%)!important;border-color:#ff355e!important}.danger-action:hover{background:linear-gradient(135deg,#9b1b3d 0%,#ff355e 52%,#ff6b86 100%)!important}.confirm-actions{display:flex;justify-content:flex-end;gap:10px}.confirm-actions button{min-width:120px}
+@media(max-width:560px){.confirm-card{padding:22px}.confirm-actions{flex-direction:column-reverse}.confirm-actions button{width:100%}}
