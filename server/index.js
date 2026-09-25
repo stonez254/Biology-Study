@@ -33,6 +33,13 @@ await pool.query(`
     progress JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  CREATE TABLE IF NOT EXISTS assessment_states (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    assessment_type TEXT NOT NULL,
+    state JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, assessment_type)
+  );
 `);
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
