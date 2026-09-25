@@ -116,9 +116,31 @@ const ACCOUNT_DATA_KEYS = [
   "biology-study:validation-queue",
 ] as const;
 
-export function clearAccountStudyData(accountId: string): void {
+export async function clearAccountStudyData(accountId: string): Promise<void> {
   for (const key of ACCOUNT_DATA_KEYS) localStorage.removeItem(key + ":" + accountId);
   localStorage.removeItem("biology-study:progress");
   localStorage.removeItem("biology-study:nodes");
   localStorage.removeItem("biology-study:validation-queue");
+  if (backendEnabled() && hasRemoteSession()) {
+    const emptyProgress = {
+      points: 0,
+      streak: 0,
+      lastStudyDate: null,
+      attempts: [],
+      missedQuestionIds: [],
+      revisionAttempts: [],
+      lessonReadDate: null,
+      lessonReadId: null,
+      ratRetakeDate: null,
+      completedLessonIds: [],
+      lessonHistory: [],
+      practiceSessions: [],
+    };
+    try {
+      await saveRemoteProgress(emptyProgress);
+      localStorage.setItem("biology-study:remote-progress", JSON.stringify(emptyProgress));
+    } catch {
+      // Keep the local reset, but do not pretend the cloud reset succeeded.
+    }
+  }
 }
