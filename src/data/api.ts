@@ -41,6 +41,13 @@ export async function loginRemote(password: string, username?: string) {
   });
 }
 
+export async function claimAssessmentSession(type: "RAT" | "CAT" | "REVISION", sessionId: string) {
+  return request<{ accepted: boolean; submittedAt: string | null }>("/api/assessment/claim", {
+    method: "POST",
+    body: JSON.stringify({ type, sessionId }),
+  });
+}
+
 export async function fetchRemoteProgress() {
   return request<{ progress: unknown | null; updatedAt: string | null }>("/api/progress");
 }
