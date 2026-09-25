@@ -50,6 +50,16 @@ await pool.query(`
     PRIMARY KEY (user_id, session_id)
   );
   ALTER TABLE assessment_submissions ADD COLUMN IF NOT EXISTS result JSONB;
+  CREATE TABLE IF NOT EXISTS verified_account_state (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    points INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  INSERT INTO verified_account_state (user_id, points)
+  SELECT u.id, COALESCE((sp.progress->>'points')::integer, 0)
+  FROM users u
+  LEFT JOIN study_progress sp ON sp.user_id = u.id
+  ON CONFLICT (user_id) DO NOTHING;
 `);
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
@@ -124,6 +134,7 @@ app.post("/api/auth/register", async (req, res) => {
       "INSERT INTO users (id, student_name, username, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, student_name, username, created_at",
       [id, studentName, username, passwordHash],
     );
+    await pool.query("INSERT INTO verified_account_state (user_id, points) VALUES ($1, 0) ON CONFLICT (user_id) DO NOTHING", [id]);
     const token = signUser(id);
     return res.status(201).json({ token, account: publicUser(result.rows[0]), progress: null, updatedAt: null });
   } catch (error) {
@@ -190,7 +201,8 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
     return res.status(400).json({ error: "Invalid assessment session." });
   }
-  if (!questionIds.length || questionIds.length > 100 || new Set(questionIds).size !== questionIds.length) {
+  const expectedCount = type === "RAT" ? 10 : type === "CAT" ? 20 : null;
+  if (!questionIds.length || questionIds.length > 100 || new Set(questionIds).size !== questionIds.length || (expectedCount !== null && questionIds.length !== expectedCount)) {
     return res.status(400).json({ error: "Invalid assessment questions." });
   }
   if (!rawAnswers) return res.status(400).json({ error: "Assessment answers are required." });
@@ -230,6 +242,11 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
+    const verifiedState = await client.query("SELECT points FROM verified_account_state WHERE user_id = $1 FOR UPDATE", [req.user.id]);
+    if (!verifiedState.rows[0]) await client.query("INSERT INTO verified_account_state (user_id, points) VALUES ($1, 0)", [req.user.id]);
+    const currentVerifiedPoints = Number(verifiedState.rows[0]?.points ?? 0);
+    const nextVerifiedPoints = currentVerifiedPoints + score;
+
     const inserted = await client.query(
       `INSERT INTO assessment_submissions (user_id, session_id, assessment_type, result)
        VALUES ($1, $2, $3, $4::jsonb)
@@ -239,6 +256,11 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     );
 
     if (inserted.rows[0]) {
+      await client.query(
+        "INSERT INTO study_progress (user_id, progress, updated_at) VALUES ($1, jsonb_build_object('points', $2), NOW()) ON CONFLICT (user_id) DO UPDATE SET progress = jsonb_set(study_progress.progress, '{points}', to_jsonb($2::integer), true), updated_at = NOW()",
+        [req.user.id, nextVerifiedPoints],
+      );
+      await client.query("UPDATE verified_account_state SET points = $2, updated_at = NOW() WHERE user_id = $1", [req.user.id, nextVerifiedPoints]);
       await client.query("COMMIT");
       return res.json({ accepted: true, duplicate: false, submittedAt: inserted.rows[0].submitted_at, result });
     }
@@ -276,6 +298,14 @@ app.put("/api/progress", auth, async (req, res) => {
   const expectedUpdatedAt = req.body.expectedUpdatedAt ? new Date(req.body.expectedUpdatedAt) : null;
   if (req.body.expectedUpdatedAt && (!expectedUpdatedAt || Number.isNaN(expectedUpdatedAt.getTime()))) {
     return res.status(400).json({ error: "Invalid expectedUpdatedAt." });
+  }
+
+  const verified = await pool.query("SELECT points FROM verified_account_state WHERE user_id = $1", [req.user.id]);
+  const verifiedPoints = Number(verified.rows[0]?.points ?? 0);
+  const submittedPoints = Number(req.body.progress.points);
+  if (!Number.isInteger(submittedPoints) || submittedPoints !== verifiedPoints) {
+    const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
+    return res.status(409).json({ error: "Progress points do not match the server-verified total.", progress: latest.rows[0]?.progress ?? { points: verifiedPoints }, updatedAt: latest.rows[0]?.updated_at ?? null });
   }
 
   const payload = JSON.stringify(req.body.progress);
