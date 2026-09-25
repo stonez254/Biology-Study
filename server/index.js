@@ -76,8 +76,48 @@ app.use(cors({
 }));
 app.use(express.json({ limit: "2mb" }));
 
+const AUTH_LIMITS = {
+  login: { max: 10, windowMs: 15 * 60 * 1000 },
+  register: { max: 5, windowMs: 60 * 60 * 1000 },
+};
+const authRateBuckets = new Map();
+
+function getClientKey(req) {
+  const forwarded = String(req.headers["x-forwarded-for"] || "").split(",")[0].trim();
+  return forwarded || req.ip || "unknown";
+}
+
+function checkAuthRateLimit(req, res, action) {
+  const limit = AUTH_LIMITS[action];
+  const key = `${action}:${getClientKey(req)}`;
+  const now = Date.now();
+  let bucket = authRateBuckets.get(key);
+
+  if (!bucket || now >= bucket.resetAt) {
+    bucket = { count: 0, resetAt: now + limit.windowMs };
+  }
+
+  bucket.count += 1;
+  authRateBuckets.set(key, bucket);
+
+  if (authRateBuckets.size > 5000) {
+    for (const [bucketKey, value] of authRateBuckets) {
+      if (value.resetAt <= now) authRateBuckets.delete(bucketKey);
+    }
+  }
+
+  if (bucket.count > limit.max) {
+    const retryAfter = Math.max(1, Math.ceil((bucket.resetAt - now) / 1000));
+    res.set("Retry-After", String(retryAfter));
+    res.status(429).json({ error: "Too many authentication attempts. Please try again later." });
+    return false;
+  }
+
+  return true;
+}
+
 function normalizeUsername(value) {
-  return String(value || "").trim().toLowerCase().replace(/\\s+/g, "");
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
 }
 
 function publicUser(row) {
@@ -118,13 +158,23 @@ app.get("/api/health", async (_req, res) => {
 });
 
 app.post("/api/auth/register", async (req, res) => {
+  if (!checkAuthRateLimit(req, res, "register")) return;
+
   try {
     const studentName = String(req.body?.studentName || "").trim();
     const password = String(req.body?.password || "");
     const username = normalizeUsername(req.body?.username || studentName);
-    if (studentName.length < 2 || password.length < 6 || username.length < 2) {
-      return res.status(400).json({ error: "Provide a name, username and password of at least 6 characters." });
+
+    if (studentName.length < 2 || studentName.length > 80) {
+      return res.status(400).json({ error: "Student name must be between 2 and 80 characters." });
     }
+    if (password.length < 6 || password.length > 128) {
+      return res.status(400).json({ error: "Password must be between 6 and 128 characters." });
+    }
+    if (username.length < 2 || username.length > 40 || !/^[a-z0-9._-]+$/.test(username)) {
+      return res.status(400).json({ error: "Username must be 2-40 characters using letters, numbers, dots, underscores or hyphens." });
+    }
+
     const existing = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
     if (existing.rows[0]) return res.status(409).json({ error: "That username is already registered." });
 
@@ -144,15 +194,22 @@ app.post("/api/auth/register", async (req, res) => {
 });
 
 app.post("/api/auth/login", async (req, res) => {
+  if (!checkAuthRateLimit(req, res, "login")) return;
+
   try {
     const username = normalizeUsername(req.body?.username);
     const password = String(req.body?.password || "");
-    if (!username || !password) return res.status(400).json({ error: "Username and password are required." });
+
+    if (username.length < 2 || username.length > 40 || !/^[a-z0-9._-]+$/.test(username) || password.length === 0 || password.length > 128) {
+      return res.status(400).json({ error: "Invalid username or password format." });
+    }
+
     const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ error: "Invalid username or password." });
     }
+
     const progress = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [user.id]);
     const token = signUser(user.id);
     return res.json({ token, account: publicUser(user), progress: progress.rows[0]?.progress ?? null, updatedAt: progress.rows[0]?.updated_at ?? null });
@@ -370,7 +427,7 @@ app.put("/api/progress", auth, async (req, res) => {
 
   if (result.rows[0]) return res.json({ ok: true, updatedAt: result.rows[0].updated_at });
 
-  const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
+  const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1");
   return res.status(409).json({
     error: "Cloud progress is newer than this device.",
     progress: latest.rows[0]?.progress ?? null,
