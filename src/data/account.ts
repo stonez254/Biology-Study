@@ -57,6 +57,8 @@ export async function verifyLocalPassword(password: string, username?: string): 
   return Boolean(account?.passwordHash && (await hashPassword(password)) === account.passwordHash);
 }
 
+export function hasRemoteSession(): boolean { return Boolean(localStorage.getItem("biology-study:auth-token")); }
+
 export async function hydrateRemoteProgress(): Promise<unknown | null> {
   if (!backendEnabled() || !hasRemoteSession()) return null;
   try {
