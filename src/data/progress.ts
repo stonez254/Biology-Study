@@ -39,7 +39,8 @@ function localDateKey(date=new Date()){return date.getFullYear()+"-"+String(date
 function dateAtMidnight(dateKey:string){const [year,month,day]=dateKey.split("-").map(Number);return new Date(year,month-1,day);}
 function addDays(date:Date,days:number){const next=new Date(date);next.setDate(next.getDate()+days);return next;}
 function dateDifferenceInDays(later:string,earlier:string){return Math.round((dateAtMidnight(later).getTime()-dateAtMidnight(earlier).getTime())/86400000);}
-export function todayKey(){return localDateKey();}\nexport function replaceProgress(progress: StudyProgress){saveProgress(progress);return progress;}
+export function todayKey(){return localDateKey();}
+export function replaceProgress(progress: StudyProgress){saveProgress(progress);return progress;}
 function updateStreak(progress:StudyProgress){const today=localDateKey(),yesterday=localDateKey(new Date(Date.now()-86400000));return progress.lastStudyDate===today?progress.streak:progress.lastStudyDate===yesterday?progress.streak+1:1;}
 export function markLessonRead(lessonId:string):StudyProgress{
  const progress=getProgress();const today=localDateKey();
