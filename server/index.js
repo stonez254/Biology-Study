@@ -456,7 +456,7 @@ app.post("/api/auth/email/verify", auth, async (req,res) => {
   } catch(error) { console.error("verify account email",error); return res.status(500).json({error:"Unable to save the verified email address."}); }
 });
 
-app.get("/api/me", auth, async (req, res) => res.json({ account: publicUser(req.user) }));
+app.get("/health", async (_req, res) => {\n  try {\n    await pool.query("SELECT 1");\n    return res.json({ ok: true, service: "biology-study-api" });\n  } catch (error) {\n    console.error("health check", error);\n    return res.status(503).json({ ok: false, service: "biology-study-api" });\n  }\n});\n\napp.get("/api/me", auth, async (req, res) => res.json({ account: publicUser(req.user) }));
 
 app.get("/api/question-bank/stats", auth, async (_req, res) => {
   try {
