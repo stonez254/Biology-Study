@@ -68,8 +68,7 @@ export async function createLocalAccount(studentName: string, email: string, pas
 
   if (backendEnabled()) {
     const response = await registerRemote(cleanName, cleanEmail, password, username?.trim());
-    if (response.token) if (!response.token) return null;
-      localStorage.setItem("biology-study:auth-token", response.token);
+    if (response.token) localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
     const saved = saveAccount(response.account);
     setCloudUpdatedAt(response.updatedAt);
@@ -85,6 +84,7 @@ export async function verifyLocalPassword(password: string, identifier?: string)
   if (backendEnabled()) {
     try {
       const response = await loginRemote(password, identifier || getAccount()?.email || getAccount()?.username);
+      if (!response.token) return null;
       localStorage.setItem("biology-study:auth-token", response.token);
       const saved = saveAccount(response.account);
       if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
@@ -95,7 +95,7 @@ export async function verifyLocalPassword(password: string, identifier?: string)
     }
   }
   const account = getAccount();
-  return account?.passwordHash && (await hashPassword(password)) === account.passwordHash ? account : null;
+  return account && account.passwordHash && (await hashPassword(password)) === account.passwordHash ? account : null;
 }
 
 export async function saveAccountEmail(email: string): Promise<LocalAccount | null> {
