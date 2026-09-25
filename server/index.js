@@ -148,6 +148,13 @@ app.get("/api/progress", auth, async (req, res) => {
   res.json({ progress: result.rows[0]?.progress ?? null, updatedAt: result.rows[0]?.updated_at ?? null });
 });
 
+app.get("/api/assessment-state/:type", auth, async (req, res) => {
+  const type = String(req.params.type || "").toUpperCase();
+  if (!["RAT", "CAT", "REVISION"].includes(type)) return res.status(400).json({ error: "Invalid assessment type." });
+  const result = await pool.query("SELECT state, updated_at FROM assessment_states WHERE user_id = $1 AND assessment_type = $2", [req.user.id, type]);
+  res.json({ state: result.rows[0]?.state ?? null, updatedAt: result.rows[0]?.updated_at ?? null });
+});
+
 app.put("/api/progress", auth, async (req, res) => {
   if (!req.body || typeof req.body.progress !== "object" || Array.isArray(req.body.progress)) {
     return res.status(400).json({ error: "Invalid progress payload." });
