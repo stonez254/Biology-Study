@@ -14,6 +14,9 @@ export type StudyProgress = {
   completedLessonIds: string[];
   lessonHistory: { lessonId: string; completedAt: string }[];
   practiceSessions: PracticeSession[];
+  activeRAT?: SavedRAT | null;
+  activeCAT?: SavedCAT | null;
+  activeRevision?: SavedRevision | null;
 };
 export type SavedAssessment = { questionIds: string[]; current: number; answers: Record<string, number>; secondsLeft: number; startedAt: string; };
 export type SavedRAT = SavedAssessment;
@@ -116,13 +119,43 @@ export function recordRevisionAttempt(result:Omit<RevisionAttempt,"id"|"complete
  missedQuestionIds:progress.missedQuestionIds.filter(id=>!mastered.has(id)),
  revisionAttempts:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.revisionAttempts].slice(0,100)};saveProgress(next);return next;
 }
-export function saveActiveRAT(saved:SavedRAT){localStorage.setItem(scopedKey(RAT_KEY),JSON.stringify(saved));}
-export function getActiveRAT():SavedRAT|null{try{const r=localStorage.getItem(scopedKey(RAT_KEY));return r?JSON.parse(r):null;}catch{return null;}}
-export function clearActiveRAT(){localStorage.removeItem(scopedKey(RAT_KEY));}
-export function saveActiveCAT(saved:SavedCAT){localStorage.setItem(scopedKey(CAT_KEY),JSON.stringify(saved));}
-export function getActiveCAT():SavedCAT|null{try{const r=localStorage.getItem(scopedKey(CAT_KEY));return r?JSON.parse(r):null;}catch{return null;}}
-export function clearActiveCAT(){localStorage.removeItem(scopedKey(CAT_KEY));}
-export function saveActiveRevision(saved:SavedRevision){localStorage.setItem(scopedKey(REVISION_KEY),JSON.stringify(saved));}
-export function getActiveRevision():SavedRevision|null{try{const r=localStorage.getItem(scopedKey(REVISION_KEY));return r?JSON.parse(r):null;}catch{return null;}}
-export function clearActiveRevision(){localStorage.removeItem(scopedKey(REVISION_KEY));}
+export function saveActiveRAT(saved:SavedRAT){
+  localStorage.setItem(scopedKey(RAT_KEY),JSON.stringify(saved));
+  const progress=getProgress(); saveProgress({...progress,activeRAT:saved});
+}
+export function getActiveRAT():SavedRAT|null{
+  try{const r=localStorage.getItem(scopedKey(RAT_KEY));if(r)return JSON.parse(r);}
+  catch{}
+  return getProgress().activeRAT??null;
+}
+export function clearActiveRAT(){
+  localStorage.removeItem(scopedKey(RAT_KEY));
+  const progress=getProgress(); saveProgress({...progress,activeRAT:null});
+}
+export function saveActiveCAT(saved:SavedCAT){
+  localStorage.setItem(scopedKey(CAT_KEY),JSON.stringify(saved));
+  const progress=getProgress(); saveProgress({...progress,activeCAT:saved});
+}
+export function getActiveCAT():SavedCAT|null{
+  try{const r=localStorage.getItem(scopedKey(CAT_KEY));if(r)return JSON.parse(r);}
+  catch{}
+  return getProgress().activeCAT??null;
+}
+export function clearActiveCAT(){
+  localStorage.removeItem(scopedKey(CAT_KEY));
+  const progress=getProgress(); saveProgress({...progress,activeCAT:null});
+}
+export function saveActiveRevision(saved:SavedRevision){
+  localStorage.setItem(scopedKey(REVISION_KEY),JSON.stringify(saved));
+  const progress=getProgress(); saveProgress({...progress,activeRevision:saved});
+}
+export function getActiveRevision():SavedRevision|null{
+  try{const r=localStorage.getItem(scopedKey(REVISION_KEY));if(r)return JSON.parse(r);}
+  catch{}
+  return getProgress().activeRevision??null;
+}
+export function clearActiveRevision(){
+  localStorage.removeItem(scopedKey(REVISION_KEY));
+  const progress=getProgress(); saveProgress({...progress,activeRevision:null});
+}
 export function hydrateQuestions(saved:SavedAssessment|SavedRevision,bank:Question[]){const byId=new Map(bank.map(q=>[q.id,q]));return saved.questionIds.map(id=>byId.get(id)).filter((q):q is Question=>Boolean(q));}
