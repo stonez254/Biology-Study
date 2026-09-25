@@ -40,6 +40,13 @@ await pool.query(`
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     PRIMARY KEY (user_id, assessment_type)
   );
+  CREATE TABLE IF NOT EXISTS assessment_submissions (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_id UUID NOT NULL,
+    assessment_type TEXT NOT NULL,
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, session_id)
+  );
 `);
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
@@ -146,6 +153,27 @@ app.get("/api/me", auth, async (req, res) => res.json({ account: publicUser(req.
 app.get("/api/progress", auth, async (req, res) => {
   const result = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
   res.json({ progress: result.rows[0]?.progress ?? null, updatedAt: result.rows[0]?.updated_at ?? null });
+});
+
+app.post("/api/assessment/claim", auth, async (req, res) => {
+  const type = String(req.body?.type || "").toUpperCase();
+  const sessionId = String(req.body?.sessionId || "");
+  if (!["RAT", "CAT", "REVISION"].includes(type) || !crypto.randomUUID) {
+    return res.status(400).json({ error: "Invalid assessment submission." });
+  }
+  let parsedSession;
+  try { parsedSession = crypto.randomUUID(sessionId); } catch { parsedSession = null; }
+  if (!parsedSession || parsedSession !== sessionId) {
+    return res.status(400).json({ error: "Invalid assessment session." });
+  }
+  const result = await pool.query(
+    `INSERT INTO assessment_submissions (user_id, session_id, assessment_type)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (user_id, session_id) DO NOTHING
+     RETURNING submitted_at`,
+    [req.user.id, sessionId, type],
+  );
+  return res.json({ accepted: Boolean(result.rows[0]), submittedAt: result.rows[0]?.submitted_at ?? null });
 });
 
 app.get("/api/assessment-state/:type", auth, async (req, res) => {
