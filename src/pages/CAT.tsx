@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
 import { setCloudUpdatedAt } from "../data/account";
 import { backendEnabled, createQuestionBankAssessment, submitAssessment, type RemoteQuestion, type VerifiedAssessmentResult } from "../data/api";
-import { clearActiveCAT, getCATStatus, getProgress, recordAssessmentAttempt, type StudyProgress } from "../data/progress";
+import { clearActiveCAT, getCATStatus, getProgress, type StudyProgress } from "../data/progress";
 
 type Props = { onExit: () => void; onProgress: (progress: StudyProgress) => void };
 
