@@ -49,7 +49,7 @@ function App(){
 {active==="Settings"&&<Settings account={account} onAccount={setAccount} onLogout={logout} onProgressReset={()=>setProgress(getProgress())} />}
 {active==="Calendar"&&<ComingSoon section={active}/>}
 <div className="scroll-progress-track" aria-hidden="true"><i style={{width:`${scrollProgress}%`}}/></div>
-{showOnboarding&&<Onboarding onCreate={finishOnboarding} onLogin={signIn}/>} {locked&&<AccountSwitcher accounts={getSavedAccounts()} currentAccount={account} onLogin={login} onSwitch={signIn} onAddAccount={()=>setShowOnboarding(true)}/>} 
+{showOnboarding&&<Onboarding onCreate={finishOnboarding} onLogin={signIn}/>} {locked&&!showOnboarding&&<AccountSwitcher accounts={getSavedAccounts()} currentAccount={account} onLogin={login} onSwitch={signIn} onAddAccount={()=>setShowOnboarding(true)}/>} 
 {!cookieConsent&&<CookieBanner onAccept={()=>{acceptCookieConsent();setCookieConsent(true);}}/>}
 </main></div>;
 }
