@@ -95,20 +95,27 @@ export default function CAT({ onExit, onProgress }: Props) {
   }, [secondsLeft, submitted, testQuestions.length]);
 
   function recordRemoteAttempt(result: VerifiedAssessmentResult): StudyProgress {
-    return recordAssessmentAttempt(
-      "CAT",
-      {
-        score: result.score,
-        correct: result.correct,
-        total: result.total,
-        accuracy: result.accuracy,
-        passed: result.passed,
-        questionIds: result.questionIds,
-        correctQuestionIds: result.correctQuestionIds,
-      },
-      result.missedQuestionIds,
-      result.sessionId,
-    );
+    const latest = getProgress();
+    const attempt = {
+      id: crypto.randomUUID(),
+      type: "CAT" as const,
+      assessmentSessionId: result.sessionId,
+      completedAt: new Date().toISOString(),
+      score: result.score,
+      correct: result.correct,
+      total: result.total,
+      accuracy: result.accuracy,
+      passed: result.passed,
+      questionIds: result.questionIds,
+      correctQuestionIds: result.correctQuestionIds,
+    };
+    const next: StudyProgress = {
+      ...latest,
+      points: latest.points + result.score,
+      attempts: [attempt, ...latest.attempts].slice(0, 100),
+      missedQuestionIds: Array.from(new Set([...latest.missedQuestionIds, ...result.missedQuestionIds])),
+    };
+    return next;
   }
 
   if (!progress.eligible) {
