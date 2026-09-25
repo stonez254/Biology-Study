@@ -76,8 +76,8 @@ function Settings({account,onAccount,onLogout,onProgressReset}:{account:LocalAcc
    if(!account)return; setError(""); setBusy(true);
    try{
      if(!(await verifyLocalPassword(password))){setError("Incorrect password. The action was not completed.");return;}
-     if(confirmAction==="reset-progress"){clearAccountStudyData(account.id);onProgressReset();setNodes([]);setQueue([]);closeConfirm();}
-     else if(confirmAction==="delete-account"){clearAccountStudyData(account.id);clearLocalAccount();sessionStorage.removeItem("biology-study:authenticated");localStorage.removeItem("biology-study:remember-login");onAccount(null);closeConfirm();window.location.reload();}
+     if(confirmAction==="reset-progress"){await clearAccountStudyData(account.id);onProgressReset();setNodes([]);setQueue([]);closeConfirm();}
+     else if(confirmAction==="delete-account"){await clearAccountStudyData(account.id);clearLocalAccount();sessionStorage.removeItem("biology-study:authenticated");localStorage.removeItem("biology-study:remember-login");onAccount(null);closeConfirm();window.location.reload();}
    }finally{setBusy(false);}
  };
  return <div className="content"><div className="settings-header"><span className="badge">SYSTEM</span><h2>Study Settings</h2><p>Manage your local student profile, study nodes and validation queue.</p></div>
