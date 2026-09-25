@@ -1,5 +1,5 @@
 import type { Question } from "./questions";
-import { getAccount } from "./account";
+import { getAccount, syncProgressToServer } from "./account";
 import { ACTIVE_LESSONS } from "./lessons";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
@@ -33,13 +33,13 @@ export function getProgress():StudyProgress{const raw=readScoped<Partial<StudyPr
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[],
   practiceSessions:(raw.practiceSessions??[]).map((s:any)=>({...s,questionIds:s.questionIds??[],correctQuestionIds:s.correctQuestionIds??[],incorrectQuestionIds:s.incorrectQuestionIds??[],timedOutQuestionIds:s.timedOutQuestionIds??[]}))
 };}
-export function saveProgress(progress:StudyProgress){localStorage.setItem(scopedKey(PROGRESS_KEY),JSON.stringify(progress));}
+export function saveProgress(progress:StudyProgress){localStorage.setItem(scopedKey(PROGRESS_KEY),JSON.stringify(progress));void syncProgressToServer(progress);}
 export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
 function localDateKey(date=new Date()){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");}
 function dateAtMidnight(dateKey:string){const [year,month,day]=dateKey.split("-").map(Number);return new Date(year,month-1,day);}
 function addDays(date:Date,days:number){const next=new Date(date);next.setDate(next.getDate()+days);return next;}
 function dateDifferenceInDays(later:string,earlier:string){return Math.round((dateAtMidnight(later).getTime()-dateAtMidnight(earlier).getTime())/86400000);}
-export function todayKey(){return localDateKey();}
+export function todayKey(){return localDateKey();}\nexport function replaceProgress(progress: StudyProgress){saveProgress(progress);return progress;}
 function updateStreak(progress:StudyProgress){const today=localDateKey(),yesterday=localDateKey(new Date(Date.now()-86400000));return progress.lastStudyDate===today?progress.streak:progress.lastStudyDate===yesterday?progress.streak+1:1;}
 export function markLessonRead(lessonId:string):StudyProgress{
  const progress=getProgress();const today=localDateKey();
