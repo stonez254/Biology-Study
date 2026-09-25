@@ -7,7 +7,7 @@ export type RemoteAccount = {
   createdAt: string;
 };
 
-export type AuthResponse = { token: string; account: RemoteAccount; progress: unknown | null };
+export type AuthResponse = { token: string; account: RemoteAccount; progress: unknown | null; updatedAt: string | null };
 
 function enabled() {
   return Boolean(API_URL);
@@ -42,13 +42,13 @@ export async function loginRemote(password: string, username?: string) {
 }
 
 export async function fetchRemoteProgress() {
-  return request<{ progress: unknown | null }>("/api/progress");
+  return request<{ progress: unknown | null; updatedAt: string | null }>("/api/progress");
 }
 
-export async function saveRemoteProgress(progress: unknown) {
-  return request<{ ok: true }>("/api/progress", {
+export async function saveRemoteProgress(progress: unknown, expectedUpdatedAt: string | null = null) {
+  return request<{ ok: true; updatedAt: string }>("/api/progress", {
     method: "PUT",
-    body: JSON.stringify({ progress }),
+    body: JSON.stringify({ progress, expectedUpdatedAt }),
   });
 }
 
