@@ -649,7 +649,7 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
   }
 
   const correctQuestionIds = questionIds.filter(id => answers[id] === expectedAnswers[id]);
-  const missedQuestionIds = questionIds.filter(id => answers[id] !== QUESTION_ANSWER_KEY[id]);
+  const missedQuestionIds = questionIds.filter(id => answers[id] !== expectedAnswers[id]);
   const correct = correctQuestionIds.length;
   const total = questionIds.length;
   const pointsPerCorrect = type === "REVISION" ? 2 : type === "RAT" ? 5 : 10;
