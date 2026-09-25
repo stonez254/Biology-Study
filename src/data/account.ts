@@ -237,11 +237,11 @@ export async function resendPendingEmail(email: string) {
   return resendVerification(email.trim().toLowerCase());
 }
 
-export async function requestPasswordReset(email: string) {
+export async function requestAccessReset(email: string) {
   return forgotPassword(email.trim().toLowerCase());
 }
 
-export async function completePasswordReset(email: string, code: string, password: string): Promise<LocalAccount | null> {
+export async function completeAccessReset(email: string, code: string, password: string): Promise<LocalAccount | null> {
   try {
     const response = await resetPassword(email.trim().toLowerCase(), code.trim(), password);
     if (!response.token) return null;
