@@ -36,7 +36,7 @@ export function backendEnabled() { return enabled(); }
 export async function registerRemote(studentName: string, email: string, password: string, username?: string) {
   return request<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ studentName, email, username, password }) });
 }
-export async function loginRemote(password: string, email: string) {
+export async function loginRemote(password: string, email?: string) {
   return request<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
 }
 export async function verifyEmail(email: string, code: string) {
@@ -52,7 +52,7 @@ export async function resetPassword(email: string, code: string, password: strin
   return request<AuthResponse>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, code, password }) });
 }
 export async function setAccountEmail(email: string) {
-  return request<{ verificationRequired: boolean; email: string }>("/api/auth/email", { method: "PUT", body: JSON.stringify({ email }) });
+  return request<{ verificationRequired: boolean; email: string; account?: RemoteAccount }>("/api/auth/email", { method: "PUT", body: JSON.stringify({ email }) });
 }
 export async function verifyAccountEmail(email: string, code: string) {
   return request<{ account: RemoteAccount }>("/api/auth/email/verify", { method: "POST", body: JSON.stringify({ email, code }) });
