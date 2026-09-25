@@ -112,6 +112,7 @@ export async function hydrateRemoteProgress(): Promise<unknown | null> {
 let syncTimer: number | null = null;
 let syncInFlight: Promise<boolean> | null = null;
 let pendingSyncProgress: unknown | null = null;
+let syncWaiters: Array<(result: boolean) => void> = [];
 
 async function performProgressSync(progress: unknown): Promise<boolean> {
   try {
@@ -137,29 +138,33 @@ async function performProgressSync(progress: unknown): Promise<boolean> {
   }
 }
 
+function resolveSyncWaiters(result: boolean) {
+  const waiters = syncWaiters;
+  syncWaiters = [];
+  for (const resolve of waiters) resolve(result);
+}
+
 export function syncProgressToServer(progress: unknown): Promise<boolean> {
   if (!backendEnabled() || !hasRemoteSession()) return Promise.resolve(false);
   pendingSyncProgress = progress;
   if (syncTimer !== null) window.clearTimeout(syncTimer);
-  return new Promise(resolve => {
-    syncTimer = window.setTimeout(async () => {
-      syncTimer = null;
-      if (syncInFlight) {
-        await syncInFlight;
-      }
-      if (!pendingSyncProgress || !backendEnabled() || !hasRemoteSession()) {
-        resolve(false);
-        return;
-      }
-      const next = pendingSyncProgress;
-      pendingSyncProgress = null;
-      syncInFlight = performProgressSync(next);
-      const result = await syncInFlight;
-      syncInFlight = null;
-      resolve(result);
-      if (pendingSyncProgress) void syncProgressToServer(pendingSyncProgress);
-    }, 750);
-  });
+  const promise = new Promise<boolean>(resolve => syncWaiters.push(resolve));
+  syncTimer = window.setTimeout(async () => {
+    syncTimer = null;
+    if (syncInFlight) await syncInFlight;
+    if (!pendingSyncProgress || !backendEnabled() || !hasRemoteSession()) {
+      resolveSyncWaiters(false);
+      return;
+    }
+    const next = pendingSyncProgress;
+    pendingSyncProgress = null;
+    syncInFlight = performProgressSync(next);
+    const result = await syncInFlight;
+    syncInFlight = null;
+    resolveSyncWaiters(result);
+    if (pendingSyncProgress) void syncProgressToServer(pendingSyncProgress);
+  }, 750);
+  return promise;
 }
 
 export function hasCookieConsent(): boolean { return document.cookie.split("; ").some(c => c === COOKIE_CONSENT + "=accepted"); }
