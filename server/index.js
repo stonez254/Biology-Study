@@ -279,6 +279,19 @@ app.post("/api/auth/login", async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ error: "Invalid email or password." });
     }
+    if (!user.email && !user.email_verified) {
+      // Legacy account migration: the password has been verified, so issue a short-lived
+      // authenticated session that allows the owner to add and verify an email address.
+      const progress = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [user.id]);
+      const token = signUser(user.id);
+      return res.json({
+        token,
+        account: publicUser(user),
+        progress: progress.rows[0]?.progress ?? null,
+        updatedAt: progress.rows[0]?.updated_at ?? null,
+        emailRequired: true,
+      });
+    }
     if (!user.email_verified) return res.status(403).json({ error: "Please verify your email address before signing in.", verificationRequired: true, email: user.email });
 
     const progress = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [user.id]);
@@ -302,10 +315,12 @@ app.put("/api/auth/email", auth, async (req, res) => {
     if (existing.rows[0]) return res.status(409).json({ error: "That email address is already registered." });
 
     const result = await pool.query(
-      "UPDATE users SET email = $2 WHERE id = $1 RETURNING id, student_name, username, email, created_at",
+      "UPDATE users SET email = $2, email_verified = FALSE WHERE id = $1 RETURNING id, student_name, username, email, email_verified, created_at",
       [req.user.id, email],
     );
-    return res.json({ account: publicUser(result.rows[0]) });
+    const code = await issueCode(email, "email-change", 10);
+    await sendVerificationCode(email, "email-change", code);
+    return res.json({ verificationRequired: true, email, account: publicUser(result.rows[0]) });
   } catch (error) {
     if (error?.code === "23505") return res.status(409).json({ error: "That email address is already registered." });
     console.error("set email", error);
