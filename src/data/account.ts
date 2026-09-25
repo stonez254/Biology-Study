@@ -5,6 +5,10 @@ export type LocalAccount = { id: string; studentName: string; username: string; 
 const ACCOUNT_KEY = "biology-study:account";
 const SAVED_ACCOUNTS_KEY = "biology-study:saved-accounts";
 const COOKIE_CONSENT = "biology-study-cookie-consent";
+const CLOUD_UPDATED_AT_KEY = "biology-study:cloud-updated-at";
+function cloudKey(){const account=getAccount();return account?`${CLOUD_UPDATED_AT_KEY}:${account.id}`:CLOUD_UPDATED_AT_KEY;}
+function getCloudUpdatedAt(){return localStorage.getItem(cloudKey());}
+function setCloudUpdatedAt(value:string|null){if(value)localStorage.setItem(cloudKey(),value);else localStorage.removeItem(cloudKey());}
 
 export function getAccount(): LocalAccount | null {
   try {
@@ -64,6 +68,7 @@ export async function createLocalAccount(studentName: string, password: string):
     const response = await registerRemote(cleanName, password);
     localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
+    setCloudUpdatedAt(response.updatedAt);
     return saveAccount(response.account);
   }
 
@@ -78,6 +83,7 @@ export async function verifyLocalPassword(password: string, username?: string): 
       localStorage.setItem("biology-study:auth-token", response.token);
       saveAccount(response.account);
       if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
+      setCloudUpdatedAt(response.updatedAt);
       return true;
     } catch {
       return false;
@@ -93,16 +99,33 @@ export async function hydrateRemoteProgress(): Promise<unknown | null> {
   if (!backendEnabled() || !hasRemoteSession()) return null;
   try {
     const response = await fetchRemoteProgress();
+    setCloudUpdatedAt(response.updatedAt);
+    if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
     return response.progress;
-  } catch {
-    clearRemoteSession();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("401")) clearRemoteSession();
     return null;
   }
 }
 
 export async function syncProgressToServer(progress: unknown) {
-  if (!backendEnabled() || !hasRemoteSession()) return;
-  try { await saveRemoteProgress(progress); } catch { /* local-first: keep working offline */ }
+  if (!backendEnabled() || !hasRemoteSession()) return false;
+  try {
+    const latest = await fetchRemoteProgress();
+    const knownAt = getCloudUpdatedAt();
+    const serverAt = latest.updatedAt;
+    if (knownAt && serverAt && knownAt !== serverAt) {
+      setCloudUpdatedAt(serverAt);
+      if (latest.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(latest.progress));
+      return false;
+    }
+    const response = await saveRemoteProgress(progress, knownAt);
+    setCloudUpdatedAt(response.updatedAt);
+    localStorage.setItem("biology-study:remote-progress", JSON.stringify(progress));
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
 export function hasCookieConsent(): boolean { return document.cookie.split("; ").some(c => c === COOKIE_CONSENT + "=accepted"); }
@@ -137,7 +160,8 @@ export async function clearAccountStudyData(accountId: string): Promise<void> {
       practiceSessions: [],
     };
     try {
-      await saveRemoteProgress(emptyProgress);
+      const response = await saveRemoteProgress(emptyProgress, getCloudUpdatedAt());
+      setCloudUpdatedAt(response.updatedAt);
       localStorage.setItem("biology-study:remote-progress", JSON.stringify(emptyProgress));
     } catch {
       // Keep the local reset, but do not pretend the cloud reset succeeded.
