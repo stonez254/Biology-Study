@@ -1,4 +1,4 @@
-import { backendEnabled, clearRemoteSession, fetchRemoteProgress, hasRemoteSession, loginRemote, registerRemote, saveRemoteProgress } from "./api";
+import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, registerRemote, saveRemoteProgress } from "./api";
 
 export type LocalAccount = { id: string; studentName: string; username: string; passwordHash?: string; createdAt: string; };
 
