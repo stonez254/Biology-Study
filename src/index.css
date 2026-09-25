@@ -611,8 +611,8 @@ nav { gap: 7px; }
 .auth-splash{position:fixed;inset:0;z-index:300;display:grid;place-items:center;padding:24px;background:
 radial-gradient(circle at 50% 35%,rgba(0,246,255,.12),transparent 30%),
 radial-gradient(circle at 50% 70%,rgba(57,255,20,.07),transparent 32%),#010607;color:#fff;overflow:hidden}
-.auth-splash::before{content:"";position:absolute;inset:-30%;background:conic-gradient(from 0deg,transparent 0deg,rgba(0,246,255,.08) 70deg,transparent 130deg,rgba(57,255,20,.06) 210deg,transparent 280deg);animation:splashSpin 12s linear infinite}
-.auth-splash-core{position:relative;width:min(520px,100%);display:grid;place-items:center;text-align:center;gap:14px;padding:34px 24px}
+.auth-splash::before{content:"";position:absolute;z-index:0;inset:-30%;background:conic-gradient(from 0deg,transparent 0deg,rgba(0,246,255,.08) 70deg,transparent 130deg,rgba(57,255,20,.06) 210deg,transparent 280deg);animation:splashSpin 12s linear infinite}
+.auth-splash-core{position:relative;z-index:1;width:min(520px,100%);display:grid;place-items:center;text-align:center;gap:14px;padding:34px 24px}
 .auth-splash-logo{width:88px;height:88px;display:grid;place-items:center;border:1px solid #00f6ff;border-radius:24px;background:linear-gradient(145deg,#03191b,#062c2d);font-size:42px;box-shadow:0 0 12px rgba(0,246,255,.7),0 0 45px rgba(57,255,20,.18),inset 0 0 24px rgba(0,246,255,.12);animation:splashPulse 1.25s ease-in-out infinite}
 .auth-splash-core h2{margin:2px 0 0;font-size:30px;letter-spacing:-.02em}
 .auth-splash-core p{margin:0;color:#8eb9ba;font-size:13px}
@@ -620,7 +620,7 @@ radial-gradient(circle at 50% 70%,rgba(57,255,20,.07),transparent 32%),#010607;c
 .auth-loader i{display:block;width:100%;height:100%;transform:translateX(-100%);background:linear-gradient(90deg,#39ff14,#00f6ff,#ff2bd6);box-shadow:0 0 12px rgba(0,246,255,.75);animation:splashLoad 5s linear forwards}
 .auth-loader span,.auth-loader b{position:absolute;width:4px;height:4px;border-radius:50%;background:#39ff14;box-shadow:0 0 12px #39ff14;animation:splashDot 1.2s ease-in-out infinite}
 .auth-loader span{margin:-1px 0 0 -120px}.auth-loader b{margin:-1px 0 0 118px;animation-delay:.6s}
-.auth-splash-footer{position:absolute;left:24px;right:24px;bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
+.auth-splash-footer{position:absolute;z-index:1;left:24px;right:24px;bottom:22px;display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:11px;letter-spacing:.12em;text-transform:uppercase}
 .auth-splash-footer small{color:#5e8b8d}.auth-splash-footer strong{color:#39ff14;text-shadow:0 0 8px rgba(57,255,20,.75);animation:poweredGlow 1.2s ease-in-out infinite alternate}
 @keyframes splashSpin{to{transform:rotate(360deg)}}
 @keyframes splashPulse{0%,100%{transform:scale(.96);box-shadow:0 0 10px rgba(0,246,255,.55),0 0 28px rgba(57,255,20,.12),inset 0 0 20px rgba(0,246,255,.08)}50%{transform:scale(1.04);box-shadow:0 0 18px rgba(0,246,255,.9),0 0 55px rgba(57,255,20,.24),inset 0 0 30px rgba(0,246,255,.16)}}
@@ -628,4 +628,6 @@ radial-gradient(circle at 50% 70%,rgba(57,255,20,.07),transparent 32%),#010607;c
 @keyframes splashDot{0%,100%{opacity:.25;transform:scale(.7)}50%{opacity:1;transform:scale(1.35)}}
 @keyframes poweredGlow{from{opacity:.65;transform:translateY(1px)}to{opacity:1;transform:translateY(-1px)}}
 @media(max-width:560px){.auth-splash-footer{flex-direction:column;justify-content:center;gap:7px;bottom:18px}.auth-splash-core h2{font-size:25px}}
-@media(prefers-reduced-motion:reduce){.auth-splash::before,.auth-splash-logo,.auth-loader i,.auth-loader span,.auth-loader b,.auth-splash-footer strong{animation:none}.auth-loader i{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.progress i{animation:none}.auth-splash::before,.auth-splash-logo,.auth-loader i,.auth-loader span,.auth-loader b,.auth-splash-footer strong{animation:none}.auth-loader i{transform:translateX(0)}}
+
+.success-message{padding:10px 12px;border:1px solid rgba(57,255,20,.55);border-radius:10px;color:#9dff8f;background:rgba(57,255,20,.07);font-size:12px;box-shadow:0 0 12px rgba(57,255,20,.12)}
