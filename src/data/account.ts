@@ -1,5 +1,6 @@
 import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, registerRemote, saveRemoteProgress, setAccountEmail, verifyEmail, resendVerification, forgotPassword, resetPassword, verifyAccountEmail } from "./api";
 
+// Remote-backed account model. Keep this module as the single auth/progress bridge for the UI.
 export type LocalAccount = { id: string; studentName: string; username: string; email?: string | null; passwordHash?: string; createdAt: string; };
 
 const ACCOUNT_KEY = "biology-study:account";
