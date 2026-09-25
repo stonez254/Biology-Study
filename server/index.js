@@ -20,6 +20,21 @@ const pool = new Pool({
   ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
 });
 
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY,
+    student_name TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE TABLE IF NOT EXISTS study_progress (
+    user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    progress JSONB NOT NULL DEFAULT '{}'::jsonb,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+`);
+
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
   .split(",")
   .map(value => value.trim())
