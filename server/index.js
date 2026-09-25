@@ -247,34 +247,53 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     const currentVerifiedPoints = Number(verifiedState.rows[0]?.points ?? 0);
     const nextVerifiedPoints = currentVerifiedPoints + score;
 
-    const inserted = await client.query(
-      `INSERT INTO assessment_submissions (user_id, session_id, assessment_type, result)
-       VALUES ($1, $2, $3, $4::jsonb)
-       ON CONFLICT (user_id, session_id) DO NOTHING
-       RETURNING submitted_at`,
-      [req.user.id, sessionId, type, JSON.stringify(result)],
-    );
-
-    if (inserted.rows[0]) {
-      await client.query(
-        "INSERT INTO study_progress (user_id, progress, updated_at) VALUES ($1, jsonb_build_object('points', $2), NOW()) ON CONFLICT (user_id) DO UPDATE SET progress = jsonb_set(study_progress.progress, '{points}', to_jsonb($2::integer), true), updated_at = NOW()",
-        [req.user.id, nextVerifiedPoints],
-      );
-      await client.query("UPDATE verified_account_state SET points = $2, updated_at = NOW() WHERE user_id = $1", [req.user.id, nextVerifiedPoints]);
-      await client.query("COMMIT");
-      return res.json({ accepted: true, duplicate: false, submittedAt: inserted.rows[0].submitted_at, result });
-    }
-
     const existing = await client.query(
-      "SELECT assessment_type, result, submitted_at FROM assessment_submissions WHERE user_id = $1 AND session_id = $2",
+      "SELECT assessment_type, result, submitted_at FROM assessment_submissions WHERE user_id = $1 AND session_id = $2 FOR UPDATE",
       [req.user.id, sessionId],
     );
-    await client.query("COMMIT");
-    if (!existing.rows[0]) return res.status(409).json({ error: "Assessment submission could not be recovered." });
-    if (existing.rows[0].assessment_type !== type || !existing.rows[0].result) {
+
+    if (existing.rows[0] && existing.rows[0].assessment_type !== type) {
+      await client.query("ROLLBACK");
       return res.status(409).json({ error: "Assessment session does not match its stored submission." });
     }
-    return res.json({ accepted: true, duplicate: true, submittedAt: existing.rows[0].submitted_at, result: existing.rows[0].result });
+
+    if (existing.rows[0]?.result) {
+      await client.query("COMMIT");
+      return res.json({ accepted: true, duplicate: true, submittedAt: existing.rows[0].submitted_at, result: existing.rows[0].result });
+    }
+
+    const submittedAt = existing.rows[0]?.submitted_at ?? new Date().toISOString();
+    if (existing.rows[0]) {
+      await client.query(
+        "UPDATE assessment_submissions SET result = $3::jsonb WHERE user_id = $1 AND session_id = $2",
+        [req.user.id, sessionId, JSON.stringify(result)],
+      );
+    } else {
+      await client.query(
+        `INSERT INTO assessment_submissions (user_id, session_id, assessment_type, result)
+         VALUES ($1, $2, $3, $4::jsonb)`,
+        [req.user.id, sessionId, type, JSON.stringify(result)],
+      );
+    }
+
+    const storedProgress = await client.query(
+      "SELECT progress FROM study_progress WHERE user_id = $1 FOR UPDATE",
+      [req.user.id],
+    );
+    const baseProgress = storedProgress.rows[0]?.progress && typeof storedProgress.rows[0].progress === "object"
+      ? storedProgress.rows[0].progress
+      : {};
+    const mergedProgress = { ...baseProgress, points: nextVerifiedPoints };
+
+    await client.query(
+      `INSERT INTO study_progress (user_id, progress, updated_at)
+       VALUES ($1, $2::jsonb, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET progress = EXCLUDED.progress, updated_at = NOW()`,
+      [req.user.id, JSON.stringify(mergedProgress)],
+    );
+    await client.query("UPDATE verified_account_state SET points = $2, updated_at = NOW() WHERE user_id = $1", [req.user.id, nextVerifiedPoints]);
+    await client.query("COMMIT");
+    return res.json({ accepted: true, duplicate: false, submittedAt, result });
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("assessment submit", error);
