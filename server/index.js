@@ -158,12 +158,11 @@ app.get("/api/progress", auth, async (req, res) => {
 app.post("/api/assessment/claim", auth, async (req, res) => {
   const type = String(req.body?.type || "").toUpperCase();
   const sessionId = String(req.body?.sessionId || "");
-  if (!["RAT", "CAT", "REVISION"].includes(type) || !crypto.randomUUID) {
+  if (!["RAT", "CAT", "REVISION"].includes(type)) {
     return res.status(400).json({ error: "Invalid assessment submission." });
   }
-  let parsedSession;
-  try { parsedSession = crypto.randomUUID(sessionId); } catch { parsedSession = null; }
-  if (!parsedSession || parsedSession !== sessionId) {
+  const parsedSession = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
+  if (!parsedSession) {
     return res.status(400).json({ error: "Invalid assessment session." });
   }
   const result = await pool.query(
