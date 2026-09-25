@@ -99,7 +99,7 @@ async function insertBatch(rows) {
   for (const item of rows) {
     const offset = params.length;
     values.push(
-      \`($\${offset + 1},$\${offset + 2},$\${offset + 3},$\${offset + 4},$\${offset + 5},$\${offset + 6},$\${offset + 7}::jsonb,$\${offset + 8},$\${offset + 9},$\${offset + 10},$\${offset + 11},$\${offset + 12}::jsonb,NOW())\`,
+      `($${offset + 1},$${offset + 2},$${offset + 3},$${offset + 4},$${offset + 5},$${offset + 6},$${offset + 7}::jsonb,$${offset + 8},$${offset + 9},$${offset + 10},$${offset + 11},$${offset + 12}::jsonb,NOW())`,
     );
     params.push(
       item.id,
@@ -117,9 +117,9 @@ async function insertBatch(rows) {
     );
   }
 
-  const sql = \`INSERT INTO question_bank_items
+  const sql = `INSERT INTO question_bank_items
     (id, source, source_id, subject, topic, question, options, correct_index, explanation, difficulty, active, metadata, updated_at)
-    VALUES \${values.join(",")}
+    VALUES ${values.join(",")}
     ON CONFLICT (source, source_id) DO UPDATE SET
       subject=EXCLUDED.subject,
       topic=EXCLUDED.topic,
@@ -130,7 +130,7 @@ async function insertBatch(rows) {
       difficulty=EXCLUDED.difficulty,
       active=EXCLUDED.active,
       metadata=EXCLUDED.metadata,
-      updated_at=NOW()\`;
+      updated_at=NOW()`;
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt += 1) {
     try {
@@ -140,7 +140,7 @@ async function insertBatch(rows) {
       const retryable = ["ECONNRESET", "ECONNREFUSED", "57P01", "08006", "08003"].includes(error.code);
       if (!retryable || attempt === MAX_RETRIES) throw error;
       const delay = Math.min(1000 * 2 ** (attempt - 1), 8000);
-      console.warn(\`Database connection dropped; retrying batch in \${delay}ms (attempt \${attempt + 1}/\${MAX_RETRIES})...\`);
+      console.warn(`Database connection dropped; retrying batch in ${delay}ms (attempt ${attempt + 1}/${MAX_RETRIES})...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -153,7 +153,7 @@ let seen = 0;
 try {
   for (const filePath of files) {
     const split = path.basename(filePath, ".json");
-    console.log(\`Reading \${path.basename(filePath)}...\`);
+    console.log(`Reading ${path.basename(filePath)}...`);
     const records = readJsonRecords(filePath);
     let batch = [];
 
@@ -173,7 +173,7 @@ try {
         await insertBatch(batch);
         imported += batch.length;
         batch = [];
-        if (imported % 5000 === 0) console.log(\`Imported \${imported} questions...\`);
+        if (imported % 5000 === 0) console.log(`Imported ${imported} questions...`);
       }
     }
 
