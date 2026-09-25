@@ -6,7 +6,7 @@ export type AssessmentType = "RAT" | "CAT" | "REVISION";
 export type PracticeSession = { id: string; completedAt: string; total: number; correct: number; accuracy: number; maxCombo: number; questionIds: string[]; correctQuestionIds: string[]; incorrectQuestionIds: string[]; timedOutQuestionIds: string[]; topic: string; difficulty: string; };
 export type AssessmentAttempt = { id: string; type: AssessmentType; assessmentSessionId?: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; questionIds: string[]; correctQuestionIds?: string[]; };
 export type RATAttempt = AssessmentAttempt;
-export type RevisionAttempt = { id: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; questionIds: string[]; };
+export type RevisionAttempt = { id: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; questionIds: string[]; assessmentSessionId?: string; };
 export type StudyProgress = {
   points: number; streak: number; lastStudyDate: string | null; attempts: AssessmentAttempt[];
   missedQuestionIds: string[]; revisionAttempts: RevisionAttempt[];
@@ -117,10 +117,10 @@ export function recordAssessmentAttempt(type:"RAT"|"CAT",result:Omit<AssessmentA
  missedQuestionIds:Array.from(new Set([...progress.missedQuestionIds,...missedIds]))};saveProgress(next);return next;
 }
 export function recordRATAttempt(result:Omit<RATAttempt,"id"|"completedAt"|"type"|"assessmentSessionId">,missedIds:string[]=[],assessmentSessionId?:string){return recordAssessmentAttempt("RAT",result,missedIds,assessmentSessionId);}
-export function recordRevisionAttempt(result:Omit<RevisionAttempt,"id"|"completedAt">,masteredIds:string[]):StudyProgress{
+export function recordRevisionAttempt(result:Omit<RevisionAttempt,"id"|"completedAt">,masteredIds:string[],assessmentSessionId?:string):StudyProgress{
  const progress=getProgress();const mastered=new Set(masteredIds);const next={...progress,points:progress.points+result.score,streak:updateStreak(progress),lastStudyDate:localDateKey(),
  missedQuestionIds:progress.missedQuestionIds.filter(id=>!mastered.has(id)),
- revisionAttempts:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.revisionAttempts].slice(0,100)};saveProgress(next);return next;
+ revisionAttempts:[{...result,assessmentSessionId:assessmentSessionId??progress.activeRevision?.sessionId,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.revisionAttempts].slice(0,100)};saveProgress(next);return next;
 }
 export function saveActiveRAT(saved:SavedRAT){
   const next={...saved,sessionId:saved.sessionId||crypto.randomUUID()};
