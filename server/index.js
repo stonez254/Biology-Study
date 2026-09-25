@@ -28,7 +28,8 @@ await pool.query(`
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-undefined  CREATE TABLE IF NOT EXISTS study_progress (
+  );
+  CREATE TABLE IF NOT EXISTS study_progress (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     progress JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -45,8 +46,10 @@ undefined  CREATE TABLE IF NOT EXISTS study_progress (
     session_id UUID NOT NULL,
     assessment_type TEXT NOT NULL,
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    result JSONB,
     PRIMARY KEY (user_id, session_id)
   );
+  ALTER TABLE assessment_submissions ADD COLUMN IF NOT EXISTS result JSONB;
 `);
 
 const allowedOrigins = (process.env.CLIENT_ORIGIN || "")
