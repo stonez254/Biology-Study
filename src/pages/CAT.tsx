@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
-import { backendEnabled, claimAssessmentSession } from "../data/api";
+import { backendEnabled, submitAssessment } from "../data/api";
 import { questions, type Question } from "../data/questions";
 import { selectCATQuestions } from "../data/questionSelector";
 import { clearActiveCAT, getActiveCAT, getCATStatus, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, getProgress, type StudyProgress } from "../data/progress";
@@ -44,20 +44,28 @@ export default function CAT({ onExit, onProgress }: Props) {
     if (finished) return;
     setFinished(true);
     const sessionId = getActiveCAT()?.sessionId;
+    let verified = {
+      correct: testQuestions.filter(item => answers[item.id] === item.answer).length,
+      score: 0,
+      accuracy: 0,
+      passed: false,
+      correctQuestionIds: testQuestions.filter(item => answers[item.id] === item.answer).map(item => item.id),
+      missedQuestionIds: testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id),
+    };
+    verified.score = verified.correct * config.pointsPerCorrect;
+    verified.accuracy = Math.round((verified.correct / testQuestions.length) * 100);
+    verified.passed = verified.accuracy >= config.passmark;
     if (backendEnabled() && sessionId) {
       try {
-        const claim = await claimAssessmentSession("CAT", sessionId);
-        if (!claim.accepted) { setFinished(false); return; }
+        const response = await submitAssessment("CAT", sessionId, testQuestions.map(item => item.id), answers);
+        verified = response.result;
       } catch {
         setFinished(false);
         window.alert("CAT submission could not be verified. Please check your connection and try again.");
         return;
       }
     }
-    const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
-    const score = correct * config.pointsPerCorrect;
-    const accuracy = Math.round((correct / testQuestions.length) * 100);
-    const next = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark, questionIds: testQuestions.map(item => item.id), correctQuestionIds: testQuestions.filter(item => answers[item.id] === item.answer).map(item => item.id) }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id), sessionId);
+    const next = recordAssessmentAttempt("CAT", { score: verified.score, correct: verified.correct, total: testQuestions.length, accuracy: verified.accuracy, passed: verified.passed, questionIds: testQuestions.map(item => item.id), correctQuestionIds: verified.correctQuestionIds }, verified.missedQuestionIds, sessionId);
     clearActiveCAT();
     onProgress(next);
     setSubmitted(true);
