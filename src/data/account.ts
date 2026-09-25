@@ -1,6 +1,6 @@
-import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, registerRemote, saveRemoteProgress } from "./api";
+import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, registerRemote, saveRemoteProgress, setAccountEmail } from "./api";
 
-export type LocalAccount = { id: string; studentName: string; username: string; passwordHash?: string; createdAt: string; };
+export type LocalAccount = { id: string; studentName: string; username: string; email?: string | null; passwordHash?: string; createdAt: string; };
 
 const ACCOUNT_KEY = "biology-study:account";
 const SAVED_ACCOUNTS_KEY = "biology-study:saved-accounts";
@@ -60,12 +60,13 @@ export function clearLocalAccount() {
   localStorage.removeItem(ACCOUNT_KEY);
 }
 
-export async function createLocalAccount(studentName: string, password: string): Promise<LocalAccount> {
+export async function createLocalAccount(studentName: string, email: string, password: string): Promise<LocalAccount> {
   const cleanName = studentName.trim();
-  if (!cleanName || password.length < 6) throw new Error("Name and a password of at least 6 characters are required.");
+  const cleanEmail = email.trim().toLowerCase();
+  if (!cleanName || !cleanEmail || password.length < 6) throw new Error("Name, email and a password of at least 6 characters are required.");
 
   if (backendEnabled()) {
-    const response = await registerRemote(cleanName, password);
+    const response = await registerRemote(cleanName, cleanEmail, password);
     localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
     const saved = saveAccount(response.account);
@@ -77,21 +78,31 @@ export async function createLocalAccount(studentName: string, password: string):
   return saveAccount(account);
 }
 
-export async function verifyLocalPassword(password: string, username?: string): Promise<boolean> {
+export async function verifyLocalPassword(password: string, identifier?: string): Promise<LocalAccount | null> {
   if (backendEnabled()) {
     try {
-      const response = await loginRemote(password, username || getAccount()?.username);
+      const response = await loginRemote(password, identifier || getAccount()?.email || getAccount()?.username);
       localStorage.setItem("biology-study:auth-token", response.token);
-      saveAccount(response.account);
+      const saved = saveAccount(response.account);
       if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
       setCloudUpdatedAt(response.updatedAt);
-      return true;
+      return saved;
     } catch {
-      return false;
+      return null;
     }
   }
   const account = getAccount();
-  return Boolean(account?.passwordHash && (await hashPassword(password)) === account.passwordHash);
+  return account?.passwordHash && (await hashPassword(password)) === account.passwordHash ? account : null;
+}
+
+export async function saveAccountEmail(email: string): Promise<LocalAccount | null> {
+  if (!backendEnabled() || !hasRemoteSession()) return getAccount();
+  try {
+    const response = await setAccountEmail(email.trim().toLowerCase());
+    return saveAccount(response.account);
+  } catch {
+    return null;
+  }
 }
 
 export function hasRemoteSession(): boolean { return Boolean(localStorage.getItem("biology-study:auth-token")); }
