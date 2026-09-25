@@ -60,13 +60,13 @@ export function clearLocalAccount() {
   localStorage.removeItem(ACCOUNT_KEY);
 }
 
-export async function createLocalAccount(studentName: string, email: string, password: string): Promise<LocalAccount> {
+export async function createLocalAccount(studentName: string, email: string, password: string, username?: string): Promise<LocalAccount> {
   const cleanName = studentName.trim();
   const cleanEmail = email.trim().toLowerCase();
   if (!cleanName || !cleanEmail || password.length < 6) throw new Error("Name, email and a password of at least 6 characters are required.");
 
   if (backendEnabled()) {
-    const response = await registerRemote(cleanName, cleanEmail, password);
+    const response = await registerRemote(cleanName, cleanEmail, password, username?.trim());
     localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
     const saved = saveAccount(response.account);
