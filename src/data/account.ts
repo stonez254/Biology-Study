@@ -8,7 +8,7 @@ const COOKIE_CONSENT = "biology-study-cookie-consent";
 const CLOUD_UPDATED_AT_KEY = "biology-study:cloud-updated-at";
 function cloudKey(){const account=getAccount();return account?`${CLOUD_UPDATED_AT_KEY}:${account.id}`:CLOUD_UPDATED_AT_KEY;}
 function getCloudUpdatedAt(){return localStorage.getItem(cloudKey());}
-function setCloudUpdatedAt(value:string|null){if(value)localStorage.setItem(cloudKey(),value);else localStorage.removeItem(cloudKey());}
+export function setCloudUpdatedAt(value:string|null){if(value)localStorage.setItem(cloudKey(),value);else localStorage.removeItem(cloudKey());}
 
 export function getAccount(): LocalAccount | null {
   try {
