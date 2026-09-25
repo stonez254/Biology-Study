@@ -58,6 +58,7 @@ await pool.query(`
     PRIMARY KEY (user_id, session_id)
   );
   ALTER TABLE assessment_submissions ADD COLUMN IF NOT EXISTS result JSONB;
+  ALTER TABLE assessment_submissions ADD COLUMN IF NOT EXISTS question_ids JSONB;
   CREATE TABLE IF NOT EXISTS verified_account_state (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     points INTEGER NOT NULL DEFAULT 0,
@@ -480,6 +481,51 @@ app.get("/api/question-bank/stats", auth, async (_req, res) => {
   }
 });
 
+app.post("/api/question-bank/assessment", auth, async (req, res) => {
+  try {
+    const type = String(req.body?.type || "").toUpperCase();
+    const requestedCount = Number(req.body?.count || (type === "RAT" ? 10 : 20));
+    const source = String(req.body?.source || "medmcqa").trim();
+    const subject = String(req.body?.subject || "").trim();
+    if (!["RAT", "CAT"].includes(type)) return res.status(400).json({ error: "Invalid assessment type." });
+    const count = type === "RAT" ? 10 : 20;
+    if (requestedCount !== count) return res.status(400).json({ error: "Invalid assessment question count." });
+
+    const params = [source];
+    const where = ["active = TRUE", "source = $1"];
+    if (subject) {
+      params.push(subject);
+      where.push("subject = $" + params.length);
+    }
+    const result = await pool.query(
+      `SELECT id, source, source_id AS "sourceId", subject, topic, question,
+              options, explanation, difficulty, metadata
+       FROM question_bank_items
+       WHERE ${where.join(" AND ")}
+       ORDER BY RANDOM()
+       LIMIT ${count}`,
+      params,
+    );
+    if (result.rows.length < count) {
+      return res.status(409).json({ error: `Not enough active ${source} questions are available for this assessment.` });
+    }
+
+    const sessionId = crypto.randomUUID();
+    const questionIds = result.rows.map(row => row.id);
+    await pool.query(
+      `INSERT INTO assessment_submissions (user_id, session_id, assessment_type, question_ids)
+       VALUES ($1, $2, $3, $4::jsonb)
+       ON CONFLICT (user_id, session_id) DO UPDATE
+       SET assessment_type = EXCLUDED.assessment_type, question_ids = EXCLUDED.question_ids`,
+      [req.user.id, sessionId, type, JSON.stringify(questionIds)],
+    );
+    res.json({ sessionId, questions: result.rows });
+  } catch (error) {
+    console.error("question bank assessment", error);
+    res.status(500).json({ error: "Unable to prepare assessment questions." });
+  }
+});
+
 app.get("/api/question-bank/questions", auth, async (req, res) => {
   try {
     const source = String(req.query.source || "").trim();
@@ -574,16 +620,35 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
 
   const answers = {};
   for (const id of questionIds) {
-    const expected = QUESTION_ANSWER_KEY[id];
-    if (typeof expected !== "number") return res.status(400).json({ error: "Assessment contains an unknown question." });
     const value = rawAnswers[id];
-    if (!Number.isInteger(value) || value < 0 || value > 2) {
+    if (!Number.isInteger(value) || value < 0 || value > 3) {
       return res.status(400).json({ error: "Assessment contains an invalid answer." });
     }
     answers[id] = value;
   }
 
-  const correctQuestionIds = questionIds.filter(id => answers[id] === QUESTION_ANSWER_KEY[id]);
+  // Curated questions use the server-side answer key. Imported question-bank
+  // questions use the protected correct_index stored in PostgreSQL.
+  const expectedAnswers = {};
+  const importedIds = questionIds.filter(id => typeof QUESTION_ANSWER_KEY[id] !== "number");
+  for (const id of questionIds) {
+    if (typeof QUESTION_ANSWER_KEY[id] === "number") expectedAnswers[id] = QUESTION_ANSWER_KEY[id];
+  }
+  if (importedIds.length) {
+    const imported = await pool.query(
+      "SELECT id, correct_index FROM question_bank_items WHERE active = TRUE AND id = ANY($1::text[])",
+      [importedIds],
+    );
+    if (imported.rows.length !== importedIds.length) {
+      return res.status(400).json({ error: "Assessment contains an unknown question." });
+    }
+    for (const row of imported.rows) expectedAnswers[row.id] = Number(row.correct_index);
+  }
+  if (Object.keys(expectedAnswers).length !== questionIds.length) {
+    return res.status(400).json({ error: "Assessment contains an unknown question." });
+  }
+
+  const correctQuestionIds = questionIds.filter(id => answers[id] === expectedAnswers[id]);
   const missedQuestionIds = questionIds.filter(id => answers[id] !== QUESTION_ANSWER_KEY[id]);
   const correct = correctQuestionIds.length;
   const total = questionIds.length;
@@ -613,13 +678,20 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     const nextVerifiedPoints = currentVerifiedPoints + score;
 
     const existing = await client.query(
-      "SELECT assessment_type, result, submitted_at FROM assessment_submissions WHERE user_id = $1 AND session_id = $2 FOR UPDATE",
+      "SELECT assessment_type, result, submitted_at, question_ids FROM assessment_submissions WHERE user_id = $1 AND session_id = $2 FOR UPDATE",
       [req.user.id, sessionId],
     );
 
     if (existing.rows[0] && existing.rows[0].assessment_type !== type) {
       await client.query("ROLLBACK");
       return res.status(409).json({ error: "Assessment session does not match its stored submission." });
+    }
+    if (existing.rows[0]?.question_ids) {
+      const storedQuestionIds = Array.isArray(existing.rows[0].question_ids) ? existing.rows[0].question_ids.map(String) : [];
+      if (storedQuestionIds.length && (storedQuestionIds.length !== questionIds.length || storedQuestionIds.some((id, index) => id !== questionIds[index]))) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Assessment questions do not match the issued session." });
+      }
     }
 
     if (existing.rows[0]?.result) {
