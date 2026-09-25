@@ -108,7 +108,7 @@ app.post("/api/auth/register", async (req, res) => {
       [id, studentName, username, passwordHash],
     );
     const token = signUser(id);
-    return res.status(201).json({ token, account: publicUser(result.rows[0]), progress: null });
+    return res.status(201).json({ token, account: publicUser(result.rows[0]), progress: null, updatedAt: null });
   } catch (error) {
     console.error("register", error);
     return res.status(500).json({ error: "Unable to create account." });
@@ -125,9 +125,9 @@ app.post("/api/auth/login", async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ error: "Invalid username or password." });
     }
-    const progress = await pool.query("SELECT progress FROM study_progress WHERE user_id = $1", [user.id]);
+    const progress = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [user.id]);
     const token = signUser(user.id);
-    return res.json({ token, account: publicUser(user), progress: progress.rows[0]?.progress ?? null });
+    return res.json({ token, account: publicUser(user), progress: progress.rows[0]?.progress ?? null, updatedAt: progress.rows[0]?.updated_at ?? null });
   } catch (error) {
     console.error("login", error);
     return res.status(500).json({ error: "Unable to sign in." });
@@ -145,14 +145,28 @@ app.put("/api/progress", auth, async (req, res) => {
   if (!req.body || typeof req.body.progress !== "object" || Array.isArray(req.body.progress)) {
     return res.status(400).json({ error: "Invalid progress payload." });
   }
-  await pool.query(
+  const expectedUpdatedAt = req.body.expectedUpdatedAt ? new Date(req.body.expectedUpdatedAt) : null;
+  const current = await pool.query("SELECT updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
+  const currentUpdatedAt = current.rows[0]?.updated_at ?? null;
+
+  if (currentUpdatedAt && (!expectedUpdatedAt || Number.isNaN(expectedUpdatedAt.getTime()) || currentUpdatedAt.getTime() !== expectedUpdatedAt.getTime())) {
+    const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
+    return res.status(409).json({
+      error: "Cloud progress is newer than this device.",
+      progress: latest.rows[0]?.progress ?? null,
+      updatedAt: latest.rows[0]?.updated_at ?? null,
+    });
+  }
+
+  const result = await pool.query(
     `INSERT INTO study_progress (user_id, progress, updated_at)
      VALUES ($1, $2::jsonb, NOW())
      ON CONFLICT (user_id)
-     DO UPDATE SET progress = EXCLUDED.progress, updated_at = NOW()`,
+     DO UPDATE SET progress = EXCLUDED.progress, updated_at = NOW()
+     RETURNING updated_at`,
     [req.user.id, JSON.stringify(req.body.progress)],
   );
-  res.json({ ok: true });
+  res.json({ ok: true, updatedAt: result.rows[0].updated_at });
 });
 
 app.listen(port, () => console.log(`Biology-Study API listening on port ${port}`));
