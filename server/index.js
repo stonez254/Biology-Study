@@ -613,7 +613,10 @@ app.put("/api/progress", auth, async (req, res) => {
 
   if (result.rows[0]) return res.json({ ok: true, updatedAt: result.rows[0].updated_at });
 
-  const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1");
+  const latest = await pool.query(
+    "SELECT progress, updated_at FROM study_progress WHERE user_id = $1",
+    [req.user.id],
+  );
   return res.status(409).json({
     error: "Cloud progress is newer than this device.",
     progress: latest.rows[0]?.progress ?? null,
