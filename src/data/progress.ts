@@ -111,12 +111,12 @@ export function getCATStatus(progress=getProgress()):CATStatus{
   return {eligible:false,ratDays:streak,remainingRATs,nextOpenAt:target,waitingForTodayRAT};
 }
 
-export function recordAssessmentAttempt(type:"RAT"|"CAT",result:Omit<AssessmentAttempt,"id"|"completedAt"|"type">,missedIds:string[]=[]):StudyProgress{
+export function recordAssessmentAttempt(type:"RAT"|"CAT",result:Omit<AssessmentAttempt,"id"|"completedAt"|"type"|"assessmentSessionId">,missedIds:string[]=[],assessmentSessionId?:string):StudyProgress{
  const progress=getProgress();const next={...progress,points:progress.points+result.score,streak:updateStreak(progress),lastStudyDate:localDateKey(),
- attempts:[{...result,type,assessmentSessionId:type==="RAT"?progress.activeRAT?.sessionId:progress.activeCAT?.sessionId,id:crypto.randomUUID(),completedAt:new Date().toISOString(),questionIds:result.questionIds??[]},...progress.attempts].slice(0,100),
+ attempts:[{...result,type,assessmentSessionId:assessmentSessionId??(type==="RAT"?progress.activeRAT?.sessionId:progress.activeCAT?.sessionId),id:crypto.randomUUID(),completedAt:new Date().toISOString(),questionIds:result.questionIds??[]},...progress.attempts].slice(0,100),
  missedQuestionIds:Array.from(new Set([...progress.missedQuestionIds,...missedIds]))};saveProgress(next);return next;
 }
-export function recordRATAttempt(result:Omit<RATAttempt,"id"|"completedAt"|"type">,missedIds:string[]=[]){return recordAssessmentAttempt("RAT",result,missedIds);}
+export function recordRATAttempt(result:Omit<RATAttempt,"id"|"completedAt"|"type"|"assessmentSessionId">,missedIds:string[]=[],assessmentSessionId?:string){return recordAssessmentAttempt("RAT",result,missedIds,assessmentSessionId);}
 export function recordRevisionAttempt(result:Omit<RevisionAttempt,"id"|"completedAt">,masteredIds:string[]):StudyProgress{
  const progress=getProgress();const mastered=new Set(masteredIds);const next={...progress,points:progress.points+result.score,streak:updateStreak(progress),lastStudyDate:localDateKey(),
  missedQuestionIds:progress.missedQuestionIds.filter(id=>!mastered.has(id)),
