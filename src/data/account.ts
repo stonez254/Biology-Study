@@ -83,7 +83,9 @@ export async function createLocalAccount(studentName: string, email: string, pas
 export async function verifyLocalPassword(password: string, identifier?: string): Promise<LocalAccount | null> {
   if (backendEnabled()) {
     try {
-      const response = await loginRemote(password, identifier || getAccount()?.email || getAccount()?.username);
+      const loginIdentifier = identifier || getAccount()?.email || getAccount()?.username;
+      if (!loginIdentifier) return null;
+      const response = await loginRemote(password, loginIdentifier);
       if (!response.token) return null;
       localStorage.setItem("biology-study:auth-token", response.token);
       const saved = saveAccount(response.account);
