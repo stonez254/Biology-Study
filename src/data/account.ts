@@ -125,6 +125,11 @@ export async function syncProgressToServer(progress: unknown) {
     localStorage.setItem("biology-study:remote-progress", JSON.stringify(progress));
     return true;
   } catch (error) {
+    try {
+      const latest = await fetchRemoteProgress();
+      if (latest.updatedAt) setCloudUpdatedAt(latest.updatedAt);
+      if (latest.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(latest.progress));
+    } catch {}
     return false;
   }
 }
