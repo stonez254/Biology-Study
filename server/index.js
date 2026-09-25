@@ -151,7 +151,7 @@ async function auth(req, res, next) {
     const token = header.startsWith("Bearer ") ? header.slice(7) : "";
     if (!token) return res.status(401).json({ error: "Authentication required." });
     const payload = jwt.verify(token, jwtSecret);
-    const result = await pool.query("SELECT id, student_name, username, created_at FROM users WHERE id = $1", [payload.sub]);
+    const result = await pool.query("SELECT id, student_name, username, email, created_at FROM users WHERE id = $1", [payload.sub]);
     if (!result.rows[0]) return res.status(401).json({ error: "Account no longer exists." });
     req.user = result.rows[0];
     next();
