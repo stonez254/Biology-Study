@@ -83,7 +83,7 @@ export async function createLocalAccount(studentName: string, email: string, pas
 export async function verifyLocalPassword(password: string, identifier?: string): Promise<LocalAccount | null> {
   if (backendEnabled()) {
     try {
-      const loginIdentifier: string | undefined = identifier || getAccount()?.email || getAccount()?.username;
+      const loginIdentifier = (identifier || getAccount()?.email || getAccount()?.username || "").trim();
       if (!loginIdentifier) return null;
       const response = await loginRemote(password, loginIdentifier);
       if (!response.token) return null;
@@ -265,7 +265,7 @@ export async function startAccountEmailVerification(email: string) {
 
 export async function finishAccountEmailVerification(email: string, code: string): Promise<LocalAccount | null> {
   try {
-    const response = await verifyAccountEmail(email.trim().toLowerCase(), code.trim());
+    const response: { account: LocalAccount } = await verifyAccountEmail(email.trim().toLowerCase(), code.trim()) as unknown as { account: LocalAccount };
     return saveAccount(response.account);
   } catch { return null; }
 }
