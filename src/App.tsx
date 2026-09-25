@@ -7,7 +7,7 @@ import Lesson from "./pages/Lesson";
 import Analytics from "./pages/Analytics";
 import { getProgress, hasCompletedRATToday, hasReadLessonToday, replaceProgress, type StudyProgress } from "./data/progress";
 import { getDailyFact } from "./data/commonKnowledge";
-import { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, syncProgressToServer, verifyLocalPassword, type LocalAccount } from "./data/account";
+import { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, getSavedAccounts, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, syncProgressToServer, verifyLocalPassword, type LocalAccount } from "./data/account";
 
 type Section="Dashboard"|"Lesson"|"RAT"|"CAT"|"Practice"|"Revision"|"Analytics"|"Calendar"|"Settings";
 const sections:Section[]=["Dashboard","Lesson","RAT","CAT","Practice","Revision","Analytics","Calendar","Settings"];
@@ -38,7 +38,7 @@ function App(){
  const dailyFact=useMemo(()=>getDailyFact(time),[time]);
  const [typedFact,setTypedFact]=useState("");
  useEffect(()=>{setTypedFact("");let index=0;const timer=window.setInterval(()=>{index+=1;setTypedFact(dailyFact.fact.slice(0,index));if(index>=dailyFact.fact.length)window.clearInterval(timer);},28);return()=>window.clearInterval(timer);},[dailyFact]);
- const finishOnboarding=async(name:string,password:string)=>{const existing=getProgress();const created=await createLocalAccount(name,password);setAccount(created);if(existing.points||existing.attempts.length||existing.completedLessonIds.length)await syncProgressToServer(existing);const remote=await hydrateRemoteProgress();setProgress(remote&&typeof remote==="object"?replaceProgress(remote as StudyProgress):getProgress());sessionStorage.setItem("biology-study:authenticated","true");setAuthenticated(true);setShowOnboarding(false);};
+ const finishOnboarding=async(name:string,password:string)=>{const hadExistingAccount=Boolean(account);const existing=hadExistingAccount?null:getProgress();const created=await createLocalAccount(name,password);setAccount(created);if(existing&&(existing.points||existing.attempts.length||existing.completedLessonIds.length))await syncProgressToServer(existing);const remote=await hydrateRemoteProgress();setProgress(remote&&typeof remote==="object"?replaceProgress(remote as StudyProgress):getProgress());sessionStorage.setItem("biology-study:authenticated","true");setAuthenticated(true);setShowOnboarding(false);};
  const signIn=async(username:string,password:string,remember:boolean)=>{const ok=await verifyLocalPassword(password,username);if(ok){setAccount(getAccount());const remote=await hydrateRemoteProgress();setProgress(remote&&typeof remote==="object"?replaceProgress(remote as StudyProgress):getProgress());sessionStorage.setItem("biology-study:authenticated","true");if(remember)localStorage.setItem("biology-study:remember-login","true");setAuthenticated(true);setShowOnboarding(false);}return ok;};
  const login=async(password:string,remember:boolean)=>{if(await verifyLocalPassword(password,account?.username)){if(remember)localStorage.setItem("biology-study:remember-login","true");sessionStorage.setItem("biology-study:authenticated","true");setAuthenticated(true);return true;}return false;};
  const logout=()=>{sessionStorage.removeItem("biology-study:authenticated");localStorage.removeItem("biology-study:remember-login");setAuthenticated(false);setActive("Dashboard");};
@@ -49,7 +49,7 @@ function App(){
 {active==="Settings"&&<Settings account={account} onAccount={setAccount} onLogout={logout} onProgressReset={()=>setProgress(getProgress())} />}
 {active==="Calendar"&&<ComingSoon section={active}/>}
 <div className="scroll-progress-track" aria-hidden="true"><i style={{width:`${scrollProgress}%`}}/></div>
-{showOnboarding&&<Onboarding onCreate={finishOnboarding} onLogin={signIn}/>} {locked&&<LoginOverlay studentName={studentName} username={account?.username||""} onLogin={login}/>}
+{showOnboarding&&<Onboarding onCreate={finishOnboarding} onLogin={signIn}/>} {locked&&<AccountSwitcher accounts={getSavedAccounts()} currentAccount={account} onLogin={login} onSwitch={signIn} onAddAccount={()=>setShowOnboarding(true)}/>} 
 {!cookieConsent&&<CookieBanner onAccept={()=>{acceptCookieConsent();setCookieConsent(true);}}/>}
 </main></div>;
 }
@@ -94,10 +94,14 @@ function Onboarding({onCreate,onLogin}:{onCreate:(name:string,password:string)=>
 function CookieBanner({onAccept}:{onAccept:()=>void}){
  return <div className="cookie-banner"><div><strong>Cookies & local storage</strong><p>Biology-Study uses a small essential cookie to remember your cookie choice, plus local browser storage for your study progress and account profile.</p></div><button className="primary-button" onClick={onAccept}>Accept</button></div>;
 }
-function LoginOverlay({studentName,username,onLogin}:{studentName:string;username:string;onLogin:(password:string,remember:boolean)=>Promise<boolean>}) {
- const [password,setPassword]=useState("");const [remember,setRemember]=useState(true);const [error,setError]=useState("");const [busy,setBusy]=useState(false);
- const submit=async(e:FormEvent)=>{e.preventDefault();setError("");setBusy(true);try{if(!(await onLogin(password,remember)))setError("Incorrect password.");else setPassword("");}finally{setBusy(false);}};
- return <div className="onboarding-overlay"><form className="onboarding-card" onSubmit={submit}><span className="badge">WELCOME BACK</span><h2>Sign in, {studentName}</h2><p>{username?"Username: "+username:"Enter your account password"}.</p><label>Password<input value={password} onChange={e=>setPassword(e.target.value)} type="password" autoFocus required placeholder="Your password"/></label><label className="remember-row"><input type="checkbox" checked={remember} onChange={e=>setRemember(e.target.checked)}/><span>Remember me on this browser</span></label>{error&&<div className="form-error">{error}</div>}<button className="primary-button" disabled={busy}>{busy?"Checking...":"Sign in"}</button><small>Your session is protected by the Biology-Study authentication server.</small></form></div>;
+function AccountSwitcher({accounts,currentAccount,onLogin,onSwitch,onAddAccount}:{accounts:LocalAccount[];currentAccount:LocalAccount|null;onLogin:(password:string,remember:boolean)=>Promise<boolean>;onSwitch:(username:string,password:string,remember:boolean)=>Promise<boolean>;onAddAccount:()=>void}) {
+ const available=accounts.length?accounts:(currentAccount?[currentAccount]:[]);
+ const [selected,setSelected]=useState(currentAccount?.username||available[0]?.username||"");
+ const [password,setPassword]=useState("");const [error,setError]=useState("");const [busy,setBusy]=useState(false);
+ const selectedAccount=available.find(item=>item.username===selected)||currentAccount;
+ const submit=async(e:FormEvent)=>{e.preventDefault();setError("");setBusy(true);try{const ok=selectedAccount?await onSwitch(selectedAccount.username,password,true):await onLogin(password,true);if(!ok)setError("Incorrect password.");else setPassword("");}finally{setBusy(false);}};
+ return <div className="onboarding-overlay"><form className="onboarding-card" onSubmit={submit}><span className="badge">ACCOUNT SWITCHER</span><h2>{selectedAccount?"Choose an account":"Welcome to Biology-Study"}</h2><p>{selectedAccount?"Select the account you want to continue with. Your progress stays separated by account.":"Add an account to start studying."}</p>{available.length>0&&<div className="account-list">{available.map(item=><button key={item.id} type="button" className={selected===item.username?"secondary-button account-choice selected":"secondary-button account-choice"} onClick={()=>{setSelected(item.username);setPassword("");setError("");}}><span>👤</span><span><strong>{item.studentName}</strong><small>@{item.username}</small></span>{selected===item.username&&<b>✓</b>}</button>)}</div>}{selectedAccount&&<label>Password<input value={password} onChange={e=>setPassword(e.target.value)} type="password" autoFocus required placeholder="Account password"/></label>}{error&&<div className="form-error">{error}</div>}{selectedAccount&&<button className="primary-button" disabled={busy}>{busy?"Signing in...":"Continue as "+selectedAccount.studentName}</button>}<button type="button" className="secondary-button" onClick={onAddAccount}>＋ Add another account</button><small>Accounts saved on this browser can be switched without losing their cloud-synced progress.</small></form></div>;
 }
+
 function ComingSoon({section}:{section:Section}){return <div className="content"><div className="empty-state"><span className="badge">🧬 NEXT MODULE</span><h2>{section}</h2><p>This study module is planned for the next build stage.</p><button className="primary-button" onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}>{section==="Calendar"?"🗓️ Study Calendar":"⚙️ Study Settings"}</button></div></div>;}
 export default App;
