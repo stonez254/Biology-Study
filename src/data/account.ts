@@ -246,13 +246,13 @@ export async function resendPendingEmail(email: string) {
   return resendVerification(email.trim().toLowerCase());
 }
 
-export async function requestAccessReset(email: string) {
-  return forgotPassword(email.trim().toLowerCase());
+export async function requestAccessReset(email: string, username: string, studentName: string) {
+  return forgotPassword(email.trim().toLowerCase(), username.trim().toLowerCase(), studentName.trim());
 }
 
-export async function completeAccessReset(email: string, code: string, password: string): Promise<LocalAccount | null> {
+export async function completeAccessReset(email: string, username: string, studentName: string, password: string): Promise<LocalAccount | null> {
   try {
-    const response = await resetPassword(email.trim().toLowerCase(), code.trim(), password);
+    const response = await resetPassword(email.trim().toLowerCase(), username.trim().toLowerCase(), studentName.trim(), password);
     if (!response.token) return null;
     localStorage.setItem("biology-study:auth-token", response.token);
     const saved = saveAccount(response.account);
