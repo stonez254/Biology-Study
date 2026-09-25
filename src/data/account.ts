@@ -109,8 +109,11 @@ export async function hydrateRemoteProgress(): Promise<unknown | null> {
   }
 }
 
-export async function syncProgressToServer(progress: unknown) {
-  if (!backendEnabled() || !hasRemoteSession()) return false;
+let syncTimer: number | null = null;
+let syncInFlight: Promise<boolean> | null = null;
+let pendingSyncProgress: unknown | null = null;
+
+async function performProgressSync(progress: unknown): Promise<boolean> {
   try {
     const latest = await fetchRemoteProgress();
     const knownAt = getCloudUpdatedAt();
@@ -124,7 +127,7 @@ export async function syncProgressToServer(progress: unknown) {
     setCloudUpdatedAt(response.updatedAt);
     localStorage.setItem("biology-study:remote-progress", JSON.stringify(progress));
     return true;
-  } catch (error) {
+  } catch {
     try {
       const latest = await fetchRemoteProgress();
       if (latest.updatedAt) setCloudUpdatedAt(latest.updatedAt);
@@ -132,6 +135,31 @@ export async function syncProgressToServer(progress: unknown) {
     } catch {}
     return false;
   }
+}
+
+export function syncProgressToServer(progress: unknown): Promise<boolean> {
+  if (!backendEnabled() || !hasRemoteSession()) return Promise.resolve(false);
+  pendingSyncProgress = progress;
+  if (syncTimer !== null) window.clearTimeout(syncTimer);
+  return new Promise(resolve => {
+    syncTimer = window.setTimeout(async () => {
+      syncTimer = null;
+      if (syncInFlight) {
+        await syncInFlight;
+      }
+      if (!pendingSyncProgress || !backendEnabled() || !hasRemoteSession()) {
+        resolve(false);
+        return;
+      }
+      const next = pendingSyncProgress;
+      pendingSyncProgress = null;
+      syncInFlight = performProgressSync(next);
+      const result = await syncInFlight;
+      syncInFlight = null;
+      resolve(result);
+      if (pendingSyncProgress) void syncProgressToServer(pendingSyncProgress);
+    }, 750);
+  });
 }
 
 export function hasCookieConsent(): boolean { return document.cookie.split("; ").some(c => c === COOKIE_CONSENT + "=accepted"); }
