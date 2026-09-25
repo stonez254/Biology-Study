@@ -34,7 +34,10 @@ export function getProgress():StudyProgress{const raw=readScoped<Partial<StudyPr
   missedQuestionIds:raw.missedQuestionIds??[],revisionAttempts:raw.revisionAttempts??[],
   lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,ratRetakeDate:raw.ratRetakeDate??null,
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[],
-  practiceSessions:(raw.practiceSessions??[]).map((s:any)=>({...s,questionIds:s.questionIds??[],correctQuestionIds:s.correctQuestionIds??[],incorrectQuestionIds:s.incorrectQuestionIds??[],timedOutQuestionIds:s.timedOutQuestionIds??[]}))
+  practiceSessions:(raw.practiceSessions??[]).map((s:any)=>({...s,questionIds:s.questionIds??[],correctQuestionIds:s.correctQuestionIds??[],incorrectQuestionIds:s.incorrectQuestionIds??[],timedOutQuestionIds:s.timedOutQuestionIds??[]})),
+  activeRAT:raw.activeRAT??null,
+  activeCAT:raw.activeCAT??null,
+  activeRevision:raw.activeRevision??null
 };}
 export function saveProgress(progress:StudyProgress){localStorage.setItem(scopedKey(PROGRESS_KEY),JSON.stringify(progress));void syncProgressToServer(progress);}
 export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
