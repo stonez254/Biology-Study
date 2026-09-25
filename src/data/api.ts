@@ -36,7 +36,7 @@ export function backendEnabled() { return enabled(); }
 export async function registerRemote(studentName: string, email: string, password: string, username?: string) {
   return request<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ studentName, email, username, password }) });
 }
-export async function loginRemote(password: string, email?: string) {
+export async function loginRemote(password: string, email: string) {
   return request<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) });
 }
 export async function verifyEmail(email: string, code: string) {
