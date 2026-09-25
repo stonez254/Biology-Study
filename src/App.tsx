@@ -23,6 +23,7 @@ function App(){
  const [scrollProgress,setScrollProgress]=useState(0);
  useEffect(()=>{const timer=window.setInterval(()=>setTime(new Date()),1000);return()=>window.clearInterval(timer);},[]);
  useEffect(()=>{void (async()=>{if(!hasRemoteSession())return;const remote=await hydrateRemoteProgress();if(remote&&typeof remote==="object")setProgress(replaceProgress(remote as StudyProgress));})();},[]);
+ useEffect(()=>{const handleOnline=()=>{if(hasRemoteSession())void syncProgressToServer(getProgress());};window.addEventListener("online",handleOnline);return()=>window.removeEventListener("online",handleOnline);},[]);
  useEffect(()=>{document.documentElement.dataset.theme=dark?"dark":"light";},[dark]);
  useEffect(()=>{
    const main=document.querySelector(".main");
