@@ -4,7 +4,7 @@ import { ACTIVE_LESSONS } from "./lessons";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
 export type PracticeSession = { id: string; completedAt: string; total: number; correct: number; accuracy: number; maxCombo: number; questionIds: string[]; correctQuestionIds: string[]; incorrectQuestionIds: string[]; timedOutQuestionIds: string[]; topic: string; difficulty: string; };
-export type AssessmentAttempt = { id: string; type: AssessmentType; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; questionIds: string[]; correctQuestionIds?: string[]; };
+export type AssessmentAttempt = { id: string; type: AssessmentType; assessmentSessionId?: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; passed: boolean; questionIds: string[]; correctQuestionIds?: string[]; };
 export type RATAttempt = AssessmentAttempt;
 export type RevisionAttempt = { id: string; completedAt: string; score: number; correct: number; total: number; accuracy: number; questionIds: string[]; };
 export type StudyProgress = {
@@ -18,7 +18,7 @@ export type StudyProgress = {
   activeCAT?: SavedCAT | null;
   activeRevision?: SavedRevision | null;
 };
-export type SavedAssessment = { questionIds: string[]; current: number; answers: Record<string, number>; secondsLeft: number; startedAt: string; };
+export type SavedAssessment = { sessionId: string; questionIds: string[]; current: number; answers: Record<string, number>; secondsLeft: number; startedAt: string; };
 export type SavedRAT = SavedAssessment;
 export type SavedCAT = SavedAssessment;
 export type SavedRevision = Omit<SavedAssessment, "secondsLeft">;
@@ -113,7 +113,7 @@ export function getCATStatus(progress=getProgress()):CATStatus{
 
 export function recordAssessmentAttempt(type:"RAT"|"CAT",result:Omit<AssessmentAttempt,"id"|"completedAt"|"type">,missedIds:string[]=[]):StudyProgress{
  const progress=getProgress();const next={...progress,points:progress.points+result.score,streak:updateStreak(progress),lastStudyDate:localDateKey(),
- attempts:[{...result,type,id:crypto.randomUUID(),completedAt:new Date().toISOString(),questionIds:result.questionIds??[]},...progress.attempts].slice(0,100),
+ attempts:[{...result,type,assessmentSessionId:type==="RAT"?progress.activeRAT?.sessionId:progress.activeCAT?.sessionId,id:crypto.randomUUID(),completedAt:new Date().toISOString(),questionIds:result.questionIds??[]},...progress.attempts].slice(0,100),
  missedQuestionIds:Array.from(new Set([...progress.missedQuestionIds,...missedIds]))};saveProgress(next);return next;
 }
 export function recordRATAttempt(result:Omit<RATAttempt,"id"|"completedAt"|"type">,missedIds:string[]=[]){return recordAssessmentAttempt("RAT",result,missedIds);}
@@ -123,8 +123,9 @@ export function recordRevisionAttempt(result:Omit<RevisionAttempt,"id"|"complete
  revisionAttempts:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.revisionAttempts].slice(0,100)};saveProgress(next);return next;
 }
 export function saveActiveRAT(saved:SavedRAT){
-  localStorage.setItem(scopedKey(RAT_KEY),JSON.stringify(saved));
-  const progress=getProgress(); saveProgress({...progress,activeRAT:saved});
+  const next={...saved,sessionId:saved.sessionId||crypto.randomUUID()};
+  localStorage.setItem(scopedKey(RAT_KEY),JSON.stringify(next));
+  const progress=getProgress(); saveProgress({...progress,activeRAT:next});
 }
 export function getActiveRAT():SavedRAT|null{
   try{const r=localStorage.getItem(scopedKey(RAT_KEY));if(r)return JSON.parse(r);}
@@ -136,8 +137,9 @@ export function clearActiveRAT(){
   const progress=getProgress(); saveProgress({...progress,activeRAT:null});
 }
 export function saveActiveCAT(saved:SavedCAT){
-  localStorage.setItem(scopedKey(CAT_KEY),JSON.stringify(saved));
-  const progress=getProgress(); saveProgress({...progress,activeCAT:saved});
+  const next={...saved,sessionId:saved.sessionId||crypto.randomUUID()};
+  localStorage.setItem(scopedKey(CAT_KEY),JSON.stringify(next));
+  const progress=getProgress(); saveProgress({...progress,activeCAT:next});
 }
 export function getActiveCAT():SavedCAT|null{
   try{const r=localStorage.getItem(scopedKey(CAT_KEY));if(r)return JSON.parse(r);}
@@ -149,8 +151,9 @@ export function clearActiveCAT(){
   const progress=getProgress(); saveProgress({...progress,activeCAT:null});
 }
 export function saveActiveRevision(saved:SavedRevision){
-  localStorage.setItem(scopedKey(REVISION_KEY),JSON.stringify(saved));
-  const progress=getProgress(); saveProgress({...progress,activeRevision:saved});
+  const next={...saved,sessionId:saved.sessionId||crypto.randomUUID()};
+  localStorage.setItem(scopedKey(REVISION_KEY),JSON.stringify(next));
+  const progress=getProgress(); saveProgress({...progress,activeRevision:next});
 }
 export function getActiveRevision():SavedRevision|null{
   try{const r=localStorage.getItem(scopedKey(REVISION_KEY));if(r)return JSON.parse(r);}
