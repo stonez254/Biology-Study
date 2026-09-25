@@ -3,6 +3,7 @@ import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, r
 export type LocalAccount = { id: string; studentName: string; username: string; passwordHash?: string; createdAt: string; };
 
 const ACCOUNT_KEY = "biology-study:account";
+const SAVED_ACCOUNTS_KEY = "biology-study:saved-accounts";
 const COOKIE_CONSENT = "biology-study-cookie-consent";
 
 export function getAccount(): LocalAccount | null {
@@ -23,7 +24,36 @@ export async function hashPassword(password: string): Promise<string> {
 
 function saveAccount(account: LocalAccount) {
   localStorage.setItem(ACCOUNT_KEY, JSON.stringify(account));
+  rememberAccount(account);
   return account;
+}
+
+function rememberAccount(account: LocalAccount) {
+  const accounts = getSavedAccounts().filter(item => item.id !== account.id && item.username !== account.username);
+  localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify([account, ...accounts].slice(0, 10)));
+}
+
+export function getSavedAccounts(): LocalAccount[] {
+  try {
+    const raw = localStorage.getItem(SAVED_ACCOUNTS_KEY);
+    if (!raw) return [];
+    const accounts = JSON.parse(raw) as Partial<LocalAccount>[];
+    return accounts.filter(item => Boolean(item?.id && item?.studentName && item?.username && item?.createdAt)) as LocalAccount[];
+  } catch {
+    return [];
+  }
+}
+
+export function removeSavedAccount(accountId: string) {
+  const accounts = getSavedAccounts().filter(item => item.id !== accountId);
+  localStorage.setItem(SAVED_ACCOUNTS_KEY, JSON.stringify(accounts));
+}
+
+export function clearLocalAccount() {
+  clearRemoteSession();
+  const current = getAccount();
+  if (current) removeSavedAccount(current.id);
+  localStorage.removeItem(ACCOUNT_KEY);
 }
 
 export async function createLocalAccount(studentName: string, password: string): Promise<LocalAccount> {
@@ -77,8 +107,6 @@ export async function syncProgressToServer(progress: unknown) {
 
 export function hasCookieConsent(): boolean { return document.cookie.split("; ").some(c => c === COOKIE_CONSENT + "=accepted"); }
 export function acceptCookieConsent() { document.cookie = COOKIE_CONSENT + "=accepted; max-age=31536000; path=/; SameSite=Lax"; }
-export function clearLocalAccount() { clearRemoteSession(); localStorage.removeItem(ACCOUNT_KEY); }
-
 const ACCOUNT_DATA_KEYS = [
   "biology-study:progress",
   "biology-study:active-rat",
