@@ -91,9 +91,10 @@ export type VerifiedAssessmentResult = {
   score: number;
   accuracy: number;
   passed: boolean;
+  correctAnswers?: Record<string, number>;
 };
 export async function submitAssessment(type: "RAT" | "CAT" | "REVISION", sessionId: string, questionIds: string[], answers: Record<string, number>) {
-  return request<{ accepted: boolean; duplicate: boolean; submittedAt: string; updatedAt: string; result: VerifiedAssessmentResult }>("/api/assessment/submit", { method: "POST", body: JSON.stringify({ type, sessionId, questionIds, answers }) });
+  return request<{ accepted: boolean; duplicate: boolean; submittedAt: string; updatedAt: string; verifiedPoints: number; result: VerifiedAssessmentResult }>("/api/assessment/submit", { method: "POST", body: JSON.stringify({ type, sessionId, questionIds, answers }) });
 }
 export async function fetchRemoteProgress() {
   return request<{ progress: unknown | null; updatedAt: string | null }>("/api/progress");
