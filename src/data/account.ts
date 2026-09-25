@@ -68,8 +68,9 @@ export async function createLocalAccount(studentName: string, password: string):
     const response = await registerRemote(cleanName, password);
     localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
+    const saved = saveAccount(response.account);
     setCloudUpdatedAt(response.updatedAt);
-    return saveAccount(response.account);
+    return saved;
   }
 
   const account: LocalAccount = { id: crypto.randomUUID(), studentName: cleanName, username: cleanName, passwordHash: await hashPassword(password), createdAt: new Date().toISOString() };
