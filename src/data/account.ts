@@ -68,9 +68,10 @@ export async function createLocalAccount(studentName: string, email: string, pas
 
   if (backendEnabled()) {
     const response = await registerRemote(cleanName, cleanEmail, password, username?.trim());
+    if (!response || !response.account) throw new Error("The server returned an incomplete account response.");
     if (response.token) localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
-    const saved = saveAccount(response.account);
+    const saved = saveAccount(response.account as LocalAccount);
     setCloudUpdatedAt(response.updatedAt);
     return saved;
   }
@@ -83,12 +84,13 @@ export async function createLocalAccount(studentName: string, email: string, pas
 export async function verifyLocalPassword(password: string, identifier?: string): Promise<LocalAccount | null> {
   if (backendEnabled()) {
     try {
-      const loginIdentifier = (identifier || getAccount()?.email || getAccount()?.username || "").trim();
+      const loginIdentifier: string = String(identifier || getAccount()?.email || getAccount()?.username || "").trim();
       if (!loginIdentifier) return null;
       const response = await loginRemote(password, loginIdentifier);
       if (!response.token) return null;
       localStorage.setItem("biology-study:auth-token", response.token);
-      const saved = saveAccount(response.account);
+      if (!response || !response.account) return null;
+      const saved = saveAccount(response.account as LocalAccount);
       if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
       setCloudUpdatedAt(response.updatedAt);
       return saved;
