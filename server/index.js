@@ -63,6 +63,26 @@ await pool.query(`
     points INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  CREATE TABLE IF NOT EXISTS question_bank_items (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    source_id TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    topic TEXT,
+    question TEXT NOT NULL,
+    options JSONB NOT NULL,
+    correct_index SMALLINT NOT NULL CHECK (correct_index >= 0 AND correct_index <= 3),
+    explanation TEXT,
+    difficulty TEXT NOT NULL DEFAULT 'advanced',
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (source, source_id)
+  );
+  CREATE INDEX IF NOT EXISTS question_bank_source_idx ON question_bank_items (source);
+  CREATE INDEX IF NOT EXISTS question_bank_subject_idx ON question_bank_items (subject);
+  CREATE INDEX IF NOT EXISTS question_bank_topic_idx ON question_bank_items (topic);
   INSERT INTO verified_account_state (user_id, points)
   SELECT u.id, COALESCE((sp.progress->>'points')::integer, 0)
   FROM users u
@@ -436,6 +456,67 @@ app.post("/api/auth/email/verify", auth, async (req,res) => {
 });
 
 app.get("/api/me", auth, async (req, res) => res.json({ account: publicUser(req.user) }));
+
+app.get("/api/question-bank/stats", auth, async (_req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT source, COUNT(*)::integer AS count
+       FROM question_bank_items
+       WHERE active = TRUE
+       GROUP BY source
+       ORDER BY source`,
+    );
+    const subjects = await pool.query(
+      `SELECT subject, COUNT(*)::integer AS count
+       FROM question_bank_items
+       WHERE active = TRUE
+       GROUP BY subject
+       ORDER BY count DESC, subject ASC`,
+    );
+    res.json({ sources: result.rows, subjects: subjects.rows });
+  } catch (error) {
+    console.error("question bank stats", error);
+    res.status(500).json({ error: "Unable to read question-bank statistics." });
+  }
+});
+
+app.get("/api/question-bank/questions", auth, async (req, res) => {
+  try {
+    const source = String(req.query.source || "").trim();
+    const subject = String(req.query.subject || "").trim();
+    const topic = String(req.query.topic || "").trim();
+    const requestedLimit = Number(req.query.limit || 20);
+    const limit = Number.isInteger(requestedLimit) ? Math.min(Math.max(requestedLimit, 1), 50) : 20;
+    const params = [];
+    const where = ["active = TRUE"];
+    if (source) {
+      params.push(source);
+      where.push(`source = ${params.length}`);
+    }
+    if (subject) {
+      params.push(subject);
+      where.push(`subject = ${params.length}`);
+    }
+    if (topic) {
+      params.push(topic);
+      where.push(`topic = ${params.length}`);
+    }
+    params.push(limit);
+    const result = await pool.query(
+      `SELECT id, source, source_id AS "sourceId", subject, topic, question,
+              options, explanation, difficulty, metadata
+       FROM question_bank_items
+       WHERE ${where.join(" AND ")}
+       ORDER BY RANDOM()
+       LIMIT ${params.length}`,
+      params,
+    );
+    res.json({ questions: result.rows });
+  } catch (error) {
+    console.error("question bank questions", error);
+    res.status(500).json({ error: "Unable to load question-bank questions." });
+  }
+});
 
 app.get("/api/progress", auth, async (req, res) => {
   const result = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
