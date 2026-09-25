@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
+import { setCloudUpdatedAt } from "../data/account";
 import { backendEnabled, submitAssessment } from "../data/api";
 import { questions, type Question } from "../data/questions";
 import { selectCATQuestions } from "../data/questionSelector";
@@ -57,7 +58,7 @@ export default function CAT({ onExit, onProgress }: Props) {
     verified.passed = verified.accuracy >= config.passmark;
     if (backendEnabled() && sessionId) {
       try {
-        const response = await submitAssessment("CAT", sessionId, testQuestions.map(item => item.id), answers);
+        const response = await submitAssessment("CAT", sessionId, testQuestions.map(item => item.id), answers); setCloudUpdatedAt(response.updatedAt);
         verified = response.result;
       } catch {
         setFinished(false);
