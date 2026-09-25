@@ -20,3 +20,5 @@ services:
 databases:
   - name: biology-study-db
     plan: free
+
+# Set these in Render Dashboard. Do not commit secret values.
