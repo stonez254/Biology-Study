@@ -160,7 +160,12 @@ async function sendEmail(to, subject, html) {
   const from = process.env.EMAIL_FROM;
   if (!key || !from) throw new Error("Email delivery is not configured.");
   const response = await fetch("https://api.resend.com/emails", { method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" }, body: JSON.stringify({ from, to: [to], subject, html }) });
-  if (!response.ok) throw new Error("Email provider rejected the message: " + response.status);
+  const body = await response.text();
+  if (!response.ok) {
+    console.error("Resend email rejected", { status: response.status, body, to, from, subject });
+    throw new Error("Email provider rejected the message: " + response.status);
+  }
+  console.log("Resend email accepted", { to, from, subject, response: body });
 }
 async function issueCode(email, purpose, minutes) {
   const code = generateCode();
