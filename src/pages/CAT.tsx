@@ -40,9 +40,20 @@ export default function CAT({ onExit, onProgress }: Props) {
     return <div className="content"><div className="empty-state"><span className="badge warning">{label}</span><h2>CAT is not available yet</h2><p>{waitingToday?"Complete today’s lesson, reach 100% reading progress, and finish today’s RAT. The CAT will be available tomorrow after the third daily RAT.":progress.ratDays===0?"The CAT opens only after three consecutive daily RATs. Start with TODAY’S LESSON, scroll to 100%, then take the RAT.":"You have completed "+progress.ratDays+" consecutive daily RAT"+(progress.ratDays===1?"":"s")+". "+(progress.ratDays>=3?"Your third RAT is complete. The CAT opens tomorrow.":"Complete the remaining daily RAT"+(progress.remainingRATs===1?"":"s")+" to unlock the CAT cycle.")}</p><div className="cat-countdown"><span>CAT countdown</span><strong>{formatCountdown(progress.nextOpenAt)}</strong><small>{progress.ratDays}/3 daily RATs completed in this CAT cycle</small></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
   }
 
-  const finish = () => {
+  const finish = async () => {
     if (finished) return;
     setFinished(true);
+    const sessionId = getActiveCAT()?.sessionId;
+    if (backendEnabled() && sessionId) {
+      try {
+        const claim = await claimAssessmentSession("CAT", sessionId);
+        if (!claim.accepted) { setFinished(false); return; }
+      } catch {
+        setFinished(false);
+        window.alert("CAT submission could not be verified. Please check your connection and try again.");
+        return;
+      }
+    }
     const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
     const score = correct * config.pointsPerCorrect;
     const accuracy = Math.round((correct / testQuestions.length) * 100);
