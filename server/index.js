@@ -26,9 +26,12 @@ await pool.query(`
     id UUID PRIMARY KEY,
     student_name TEXT NOT NULL,
     username TEXT NOT NULL UNIQUE,
+    email TEXT,
     password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   );
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;
+  CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email)) WHERE email IS NOT NULL;
   CREATE TABLE IF NOT EXISTS study_progress (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     progress JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -120,11 +123,20 @@ function normalizeUsername(value) {
   return String(value || "").trim().toLowerCase().replace(/\s+/g, "");
 }
 
+function normalizeEmail(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function isValidEmail(value) {
+  return value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
 function publicUser(row) {
   return {
     id: row.id,
     studentName: row.student_name,
     username: row.username,
+    email: row.email ?? null,
     createdAt: row.created_at,
   };
 }
@@ -162,6 +174,7 @@ app.post("/api/auth/register", async (req, res) => {
 
   try {
     const studentName = String(req.body?.studentName || "").trim();
+    const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password || "");
     const username = normalizeUsername(req.body?.username || studentName);
 
@@ -174,20 +187,25 @@ app.post("/api/auth/register", async (req, res) => {
     if (username.length < 2 || username.length > 40 || !/^[a-z0-9._-]+$/.test(username)) {
       return res.status(400).json({ error: "Username must be 2-40 characters using letters, numbers, dots, underscores or hyphens." });
     }
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: "Please provide a valid email address." });
+    }
 
-    const existing = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
-    if (existing.rows[0]) return res.status(409).json({ error: "That username is already registered." });
+    const existing = await pool.query("SELECT id, username, email FROM users WHERE username = $1 OR LOWER(email) = LOWER($2) LIMIT 1", [username, email]);
+    if (existing.rows[0]?.username === username) return res.status(409).json({ error: "That username is already registered." });
+    if (existing.rows[0]) return res.status(409).json({ error: "That email address is already registered." });
 
     const id = crypto.randomUUID();
     const passwordHash = await bcrypt.hash(password, 12);
     const result = await pool.query(
-      "INSERT INTO users (id, student_name, username, password_hash) VALUES ($1, $2, $3, $4) RETURNING id, student_name, username, created_at",
-      [id, studentName, username, passwordHash],
+      "INSERT INTO users (id, student_name, username, email, password_hash) VALUES ($1, $2, $3, $4, $5) RETURNING id, student_name, username, email, created_at",
+      [id, studentName, username, email, passwordHash],
     );
     await pool.query("INSERT INTO verified_account_state (user_id, points) VALUES ($1, 0) ON CONFLICT (user_id) DO NOTHING", [id]);
     const token = signUser(id);
     return res.status(201).json({ token, account: publicUser(result.rows[0]), progress: null, updatedAt: null });
   } catch (error) {
+    if (error?.code === "23505") return res.status(409).json({ error: "That username or email address is already registered." });
     console.error("register", error);
     return res.status(500).json({ error: "Unable to create account." });
   }
@@ -197,17 +215,26 @@ app.post("/api/auth/login", async (req, res) => {
   if (!checkAuthRateLimit(req, res, "login")) return;
 
   try {
-    const username = normalizeUsername(req.body?.username);
+    const identifier = String(req.body?.email || req.body?.identifier || "").trim();
+    const email = normalizeEmail(identifier);
     const password = String(req.body?.password || "");
 
-    if (username.length < 2 || username.length > 40 || !/^[a-z0-9._-]+$/.test(username) || password.length === 0 || password.length > 128) {
-      return res.status(400).json({ error: "Invalid username or password format." });
+    if (identifier.length < 2 || identifier.length > 254 || password.length === 0 || password.length > 128) {
+      return res.status(400).json({ error: "Invalid email or password format." });
     }
 
-    const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
+    let result;
+    if (isValidEmail(email)) {
+      result = await pool.query("SELECT * FROM users WHERE LOWER(email) = LOWER($1)", [email]);
+    } else {
+      // Temporary migration path for accounts created before email login was introduced.
+      const legacyUsername = normalizeUsername(identifier);
+      result = await pool.query("SELECT * FROM users WHERE username = $1 AND email IS NULL", [legacyUsername]);
+    }
+
     const user = result.rows[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-      return res.status(401).json({ error: "Invalid username or password." });
+      return res.status(401).json({ error: "Invalid email or password." });
     }
 
     const progress = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [user.id]);
@@ -216,6 +243,29 @@ app.post("/api/auth/login", async (req, res) => {
   } catch (error) {
     console.error("login", error);
     return res.status(500).json({ error: "Unable to sign in." });
+  }
+});
+
+app.put("/api/auth/email", auth, async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!isValidEmail(email)) return res.status(400).json({ error: "Please provide a valid email address." });
+
+    const existing = await pool.query(
+      "SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id <> $2",
+      [email, req.user.id],
+    );
+    if (existing.rows[0]) return res.status(409).json({ error: "That email address is already registered." });
+
+    const result = await pool.query(
+      "UPDATE users SET email = $2 WHERE id = $1 RETURNING id, student_name, username, email, created_at",
+      [req.user.id, email],
+    );
+    return res.json({ account: publicUser(result.rows[0]) });
+  } catch (error) {
+    if (error?.code === "23505") return res.status(409).json({ error: "That email address is already registered." });
+    console.error("set email", error);
+    return res.status(500).json({ error: "Unable to save the email address." });
   }
 });
 
