@@ -160,27 +160,40 @@ app.put("/api/progress", auth, async (req, res) => {
     return res.status(400).json({ error: "Invalid progress payload." });
   }
   const expectedUpdatedAt = req.body.expectedUpdatedAt ? new Date(req.body.expectedUpdatedAt) : null;
-  const current = await pool.query("SELECT updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
-  const currentUpdatedAt = current.rows[0]?.updated_at ?? null;
+  if (req.body.expectedUpdatedAt && (!expectedUpdatedAt || Number.isNaN(expectedUpdatedAt.getTime()))) {
+    return res.status(400).json({ error: "Invalid expectedUpdatedAt." });
+  }
 
-  if (currentUpdatedAt && (!expectedUpdatedAt || Number.isNaN(expectedUpdatedAt.getTime()) || currentUpdatedAt.getTime() !== expectedUpdatedAt.getTime())) {
-    const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
-    return res.status(409).json({
-      error: "Cloud progress is newer than this device.",
-      progress: latest.rows[0]?.progress ?? null,
-      updatedAt: latest.rows[0]?.updated_at ?? null,
-    });
+  const payload = JSON.stringify(req.body.progress);
+  const expected = expectedUpdatedAt ? expectedUpdatedAt.toISOString() : null;
+
+  if (!expected) {
+    const inserted = await pool.query(
+      `INSERT INTO study_progress (user_id, progress, updated_at)
+       VALUES ($1, $2::jsonb, NOW())
+       ON CONFLICT (user_id) DO NOTHING
+       RETURNING updated_at`,
+      [req.user.id, payload],
+    );
+    if (inserted.rows[0]) return res.json({ ok: true, updatedAt: inserted.rows[0].updated_at });
   }
 
   const result = await pool.query(
-    `INSERT INTO study_progress (user_id, progress, updated_at)
-     VALUES ($1, $2::jsonb, NOW())
-     ON CONFLICT (user_id)
-     DO UPDATE SET progress = EXCLUDED.progress, updated_at = NOW()
+    `UPDATE study_progress
+     SET progress = $2::jsonb, updated_at = NOW()
+     WHERE user_id = $1 AND updated_at = $3::timestamptz
      RETURNING updated_at`,
-    [req.user.id, JSON.stringify(req.body.progress)],
+    [req.user.id, payload, expected],
   );
-  res.json({ ok: true, updatedAt: result.rows[0].updated_at });
+
+  if (result.rows[0]) return res.json({ ok: true, updatedAt: result.rows[0].updated_at });
+
+  const latest = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
+  return res.status(409).json({
+    error: "Cloud progress is newer than this device.",
+    progress: latest.rows[0]?.progress ?? null,
+    updatedAt: latest.rows[0]?.updated_at ?? null,
+  });
 });
 
 app.listen(port, () => console.log(`Biology-Study API listening on port ${port}`));
