@@ -118,3 +118,4 @@ function AccountSwitcher({accounts,currentAccount,onLogin,onSwitch,onAddAccount}
 
 function ComingSoon({section}:{section:Section}){return <div className="content"><div className="empty-state"><span className="badge">🧬 NEXT MODULE</span><h2>{section}</h2><p>This study module is planned for the next build stage.</p><button className="primary-button" onClick={()=>window.scrollTo({top:0,behavior:"smooth"})}>{section==="Calendar"?"🗓️ Study Calendar":"⚙️ Study Settings"}</button></div></div>;}
 export default App;
+// account verification workflow
