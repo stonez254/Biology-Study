@@ -1,110 +1,154 @@
 import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
 import { setCloudUpdatedAt } from "../data/account";
-import { backendEnabled, submitAssessment } from "../data/api";
-import { questions, type Question } from "../data/questions";
-import { selectCATQuestions } from "../data/questionSelector";
-import { clearActiveCAT, getActiveCAT, getCATStatus, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, getProgress, type StudyProgress } from "../data/progress";
+import { backendEnabled, createQuestionBankAssessment, submitAssessment, type RemoteQuestion, type VerifiedAssessmentResult } from "../data/api";
+import { clearActiveCAT, getCATStatus, getProgress, type StudyProgress } from "../data/progress";
 
 type Props = { onExit: () => void; onProgress: (progress: StudyProgress) => void };
 
-function formatCountdown(target:Date|null){
-  if(!target)return "00:00:00";
-  const seconds=Math.max(0,Math.ceil((target.getTime()-Date.now())/1000));
-  const days=Math.floor(seconds/86400);
-  const hours=Math.floor((seconds%86400)/3600);
-  const minutes=Math.floor((seconds%3600)/60);
-  const secs=seconds%60;
-  return days>0?String(days).padStart(2,"0")+":"+String(hours).padStart(2,"0")+":"+String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0"):String(hours).padStart(2,"0")+":"+String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0");
+function formatCountdown(target: Date | null) {
+  if (!target) return "00:00:00";
+  const seconds = Math.max(0, Math.ceil((target.getTime() - Date.now()) / 1000));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  return days > 0
+    ? String(days).padStart(2, "0") + ":" + String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0") + ":" + String(secs).padStart(2, "0")
+    : String(hours).padStart(2, "0") + ":" + String(minutes).padStart(2, "0") + ":" + String(secs).padStart(2, "0");
 }
 
 export default function CAT({ onExit, onProgress }: Props) {
   const config = ASSESSMENT_CONFIG.cat;
-  const saved = getActiveCAT();
   const studyProgress = getProgress();
-  const restored = saved ? hydrateQuestions(saved, questions) : [];
-  const [now,setNow]=useState(Date.now());
-  const [testQuestions, setTestQuestions] = useState<Question[]>(restored.length === config.questionCount ? restored : () => selectCATQuestions(questions, config.questionCount, studyProgress.completedLessonIds, studyProgress.attempts.flatMap(a => a.questionIds ?? [])));
-  const [current, setCurrent] = useState(saved && restored.length === config.questionCount ? saved.current : 0);
-  const [answers, setAnswers] = useState<Record<string, number>>(saved && restored.length === config.questionCount ? saved.answers : {});
-  const [secondsLeft, setSecondsLeft] = useState(saved && restored.length === config.questionCount ? saved.secondsLeft : config.durationSeconds);
+  const progress = getCATStatus();
+  const [now, setNow] = useState(Date.now());
+  const [testQuestions, setTestQuestions] = useState<RemoteQuestion[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
+  const [current, setCurrent] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(config.durationSeconds);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [finished, setFinished] = useState(false);
-  const progress=getCATStatus();
-
-  useEffect(()=>{const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>window.clearInterval(timer);},[]);
-  void now;
-
-  if(!progress.eligible){
-    const waitingToday=progress.waitingForTodayRAT;
-    const label=waitingToday?"TODAY'S RAT IS REQUIRED":progress.ratDays===0?"CAT LOCKED":progress.ratDays>=3?"CAT OPENS TOMORROW":`${progress.remainingRATs} RAT${progress.remainingRATs===1?"":"s"} REMAINING`;
-    return <div className="content"><div className="empty-state"><span className="badge warning">{label}</span><h2>CAT is not available yet</h2><p>{waitingToday?"Complete today’s lesson, reach 100% reading progress, and finish today’s RAT. The CAT will be available tomorrow after the third daily RAT.":progress.ratDays===0?"The CAT opens only after three consecutive daily RATs. Start with TODAY’S LESSON, scroll to 100%, then take the RAT.":"You have completed "+progress.ratDays+" consecutive daily RAT"+(progress.ratDays===1?"":"s")+". "+(progress.ratDays>=3?"Your third RAT is complete. The CAT opens tomorrow.":"Complete the remaining daily RAT"+(progress.remainingRATs===1?"":"s")+" to unlock the CAT cycle.")}</p><div className="cat-countdown"><span>CAT countdown</span><strong>{formatCountdown(progress.nextOpenAt)}</strong><small>{progress.ratDays}/3 daily RATs completed in this CAT cycle</small></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
-  }
-
-  const finish = async () => {
-    if (finished) return;
-    setFinished(true);
-    const sessionId = getActiveCAT()?.sessionId;
-    let verified = {
-      correct: testQuestions.filter(item => answers[item.id] === item.answer).length,
-      score: 0,
-      accuracy: 0,
-      passed: false,
-      correctQuestionIds: testQuestions.filter(item => answers[item.id] === item.answer).map(item => item.id),
-      missedQuestionIds: testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id),
-    };
-    verified.score = verified.correct * config.pointsPerCorrect;
-    verified.accuracy = Math.round((verified.correct / testQuestions.length) * 100);
-    verified.passed = verified.accuracy >= config.passmark;
-    if (backendEnabled() && sessionId) {
-      try {
-        const response = await submitAssessment("CAT", sessionId, testQuestions.map(item => item.id), answers); setCloudUpdatedAt(response.updatedAt);
-        verified = response.result;
-      } catch {
-        setFinished(false);
-        window.alert("CAT submission could not be verified. Please check your connection and try again.");
-        return;
-      }
-    }
-    const next = recordAssessmentAttempt("CAT", { score: verified.score, correct: verified.correct, total: testQuestions.length, accuracy: verified.accuracy, passed: verified.passed, questionIds: testQuestions.map(item => item.id), correctQuestionIds: verified.correctQuestionIds }, verified.missedQuestionIds, sessionId);
-    clearActiveCAT();
-    onProgress(next);
-    setSubmitted(true);
-  };
+  const [verifiedResult, setVerifiedResult] = useState<VerifiedAssessmentResult | null>(null);
 
   useEffect(() => {
-    if (submitted) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+  void now;
+
+  useEffect(() => {
+    if (!progress.eligible || testQuestions.length || loading || !backendEnabled()) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    createQuestionBankAssessment("CAT", config.questionCount as 20, "medmcqa")
+      .then(response => {
+        if (cancelled) return;
+        setSessionId(response.sessionId);
+        setTestQuestions(response.questions);
+        setSecondsLeft(config.durationSeconds);
+      })
+      .catch(error => {
+        if (!cancelled) setLoadError(error instanceof Error ? error.message : "Unable to load CAT questions.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [progress.eligible, testQuestions.length, loading, config.questionCount, config.durationSeconds]);
+
+  useEffect(() => {
+    if (submitted || !testQuestions.length) return;
     const timer = window.setInterval(() => setSecondsLeft(value => {
-      if (value <= 1) { window.clearInterval(timer); setSecondsLeft(0); return 0; }
+      if (value <= 1) {
+        window.clearInterval(timer);
+        return 0;
+      }
       return value - 1;
     }), 1000);
     return () => window.clearInterval(timer);
-  }, [submitted]);
+  }, [submitted, testQuestions.length]);
+
+  const finish = async () => {
+    if (finished || !sessionId) return;
+    setFinished(true);
+    try {
+      const response = await submitAssessment("CAT", sessionId, testQuestions.map(item => item.id), answers);
+      setCloudUpdatedAt(response.updatedAt);
+      setVerifiedResult(response.result);
+      const next = recordRemoteAttempt(response.result);
+      clearActiveCAT();
+      onProgress(next);
+      setSubmitted(true);
+    } catch (error) {
+      setFinished(false);
+      window.alert(error instanceof Error ? error.message : "CAT submission could not be verified. Please check your connection and try again.");
+    }
+  };
 
   useEffect(() => {
-    if (!submitted && secondsLeft === 0) finish();
-  }, [secondsLeft, submitted]);
+    if (!submitted && testQuestions.length && secondsLeft === 0) void finish();
+  }, [secondsLeft, submitted, testQuestions.length]);
 
-  useEffect(() => {
-    if (submitted) return;
-    saveActiveCAT({ questionIds: testQuestions.map(q => q.id), current, answers, secondsLeft, startedAt: saved?.startedAt ?? new Date().toISOString() });
-  }, [answers, current, secondsLeft, submitted, testQuestions, saved?.startedAt]);
+  function recordRemoteAttempt(result: VerifiedAssessmentResult): StudyProgress {
+    const latest = getProgress();
+    const attempt = {
+      date: new Date().toISOString(),
+      score: result.score,
+      correct: result.correct,
+      total: result.total,
+      accuracy: result.accuracy,
+      passed: result.passed,
+      questionIds: result.questionIds,
+      correctQuestionIds: result.correctQuestionIds,
+    };
+    return {
+      ...latest,
+      attempts: [...latest.attempts, attempt],
+      missedQuestionIds: Array.from(new Set([...latest.missedQuestionIds, ...result.missedQuestionIds])),
+      points: result.score + latest.points,
+    };
+  }
+
+  if (!progress.eligible) {
+    const waitingToday = progress.waitingForTodayRAT;
+    const label = waitingToday ? "TODAY'S RAT IS REQUIRED" : progress.ratDays === 0 ? "CAT LOCKED" : progress.ratDays >= 3 ? "CAT OPENS TOMORROW" : `${progress.remainingRATs} RAT${progress.remainingRATs === 1 ? "" : "s"} REMAINING`;
+    return <div className="content"><div className="empty-state"><span className="badge warning">{label}</span><h2>CAT is not available yet</h2><p>{waitingToday ? "Complete today’s lesson, reach 100% reading progress, and finish today’s RAT. The CAT will be available tomorrow after the third daily RAT." : progress.ratDays === 0 ? "The CAT opens only after three consecutive daily RATs. Start with TODAY’S LESSON, scroll to 100%, then take the RAT." : `You have completed ${progress.ratDays} consecutive daily RAT${progress.ratDays === 1 ? "" : "s"}. ${progress.ratDays >= 3 ? "Your third RAT is complete. The CAT opens tomorrow." : "Complete the remaining daily RATs to unlock the CAT cycle."}`}</p><div className="cat-countdown"><span>CAT countdown</span><strong>{formatCountdown(progress.nextOpenAt)}</strong><small>{progress.ratDays}/3 daily RATs completed in this CAT cycle</small></div><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+  }
+
+  if (!backendEnabled()) {
+    return <div className="content"><div className="empty-state"><span className="badge warning">BACKEND REQUIRED</span><h2>CAT needs the question server</h2><p>Connect the Biology-Study API so CAT questions can be issued and scored securely.</p><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+  }
+
+  if (loading || (!testQuestions.length && !loadError)) {
+    return <div className="content"><div className="empty-state"><span className="badge">QUESTION BANK</span><h2>Preparing your CAT...</h2><p>Selecting 20 questions from the server-side MedMCQA bank and securing their answer key.</p></div></div>;
+  }
+
+  if (loadError) {
+    return <div className="content"><div className="empty-state"><span className="badge warning">QUESTION BANK ERROR</span><h2>CAT could not be prepared</h2><p>{loadError}</p><button className="primary-button" onClick={() => window.location.reload()}>Try again</button><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+  }
+
+  if (submitted && verifiedResult) {
+    const result = verifiedResult;
+    const correctIds = new Set(result.correctQuestionIds);
+    return <div className="content"><div className="result-card"><span className={result.passed ? "badge success" : "badge warning"}>{result.passed ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{result.score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>The server verified {result.correct} of {result.total} questions correctly.</p><div className="result-grid"><div><strong>{result.correct}</strong><span>Correct</span></div><div><strong>{result.total - result.correct}</strong><span>Incorrect</span></div><div><strong>{result.accuracy}%</strong><span>Accuracy</span></div></div><div className="review-list"><h3>Missed questions • Review</h3>{testQuestions.filter(item => !correctIds.has(item.id)).map(item => <article className="review-item" key={item.id}><strong>{item.question}</strong><p><b>Correct answer:</b> {item.options[result.questionIds.indexOf(item.id) >= 0 ? getCorrectIndexForReview(item.id, result) : 0] ?? "See server-verified result"}</p><p>{item.explanation ?? "Review this question before your next assessment."}</p><small>{item.subject}{item.topic ? ` • ${item.topic}` : ""}</small></article>)}{result.missedQuestionIds.length === 0 && <p className="review-empty">Perfect score. No missed questions to review.</p>}</div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div></div>;
+  }
 
   const question = testQuestions[current];
   const answered = Object.keys(answers).length;
-  const score = useMemo(() => testQuestions.reduce((total, item) => total + (answers[item.id] === item.answer ? config.pointsPerCorrect : 0), 0), [answers, testQuestions, config.pointsPerCorrect]);
   const minutes = Math.floor(secondsLeft / 60).toString().padStart(2, "0");
   const seconds = (secondsLeft % 60).toString().padStart(2, "0");
 
-  if (testQuestions.length < config.questionCount) {
-    return <div className="content"><div className="empty-state"><span className="badge warning">QUESTION BANK</span><h2>CAT needs more questions</h2><p>The CAT is configured for {config.questionCount} unique questions, but the current bank only has {testQuestions.length}. Add more questions before starting a CAT.</p><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
-  }
+  return <div className="content"><div className="test-header"><div><span className="eyebrow">Continuous Assessment Test</span><h2>CAT</h2><p>{config.questionCount} questions • 30 minutes • {config.pointsPerCorrect} points per correct answer • Passmark {config.passmark}%</p></div><div className={secondsLeft <= 60 ? "timer danger" : "timer"}>{minutes}:{seconds}</div></div><div className="question-layout"><div className="question-card"><div className="question-meta"><span>Question {current + 1} of {testQuestions.length}</span><span>{question.subject}{question.topic ? ` • ${question.topic}` : ""}</span></div><h3>{question.question}</h3><div className="options">{question.options.map((option,index)=><button key={option} className={answers[question.id] === index ? "option selected" : "option"} onClick={() => setAnswers(old => ({...old,[question.id]:index}))}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div><div className="question-actions"><button className="secondary-button" disabled={current === 0} onClick={() => setCurrent(value => value - 1)}>Previous</button>{current < testQuestions.length - 1 ? <button className="primary-button" onClick={() => setCurrent(value => value + 1)}>Next</button> : <button className="primary-button" onClick={finish}>Submit CAT</button>}</div></div><aside className="question-map"><strong>Progress</strong><span>{answered} / {testQuestions.length} answered</span><div className="map-grid">{testQuestions.map((item,index)=><button key={item.id} className={answers[item.id] !== undefined ? "map-dot answered" : "map-dot"} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div><small>Your answers are submitted to the server and scored against the protected question bank.</small></aside></div></div>;
+}
 
-  if (submitted) {
-    const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
-    const accuracy = Math.round((correct / testQuestions.length) * 100);
-    return <div className="content"><div className="result-card"><span className={accuracy >= config.passmark ? "badge success" : "badge warning"}>{accuracy >= config.passmark ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>You answered {correct} of {testQuestions.length} questions correctly. Review the explanations below before moving to Revision.</p><div className="result-grid"><div><strong>{correct}</strong><span>Correct</span></div><div><strong>{testQuestions.length - correct}</strong><span>Incorrect</span></div><div><strong>{accuracy}%</strong><span>Accuracy</span></div></div><div className="review-list"><h3>Missed questions • Review</h3>{testQuestions.filter(item=>answers[item.id]!==item.answer).map(item=><article key={item.id} className="review-item"><strong>{item.prompt}</strong><p><b>Correct answer:</b> {item.options[item.answer]}</p><p>{item.explanation}</p><small>{item.reference}</small></article>)}{testQuestions.every(item=>answers[item.id]===item.answer)&&<p className="review-empty">Perfect score. No missed questions to review.</p>}</div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div></div>;
-  }
-
-  return <div className="content"><div className="test-header"><div><span className="eyebrow">Continuous Assessment Test</span><h2>CAT</h2><p>{config.questionCount} questions • 30 minutes • {config.pointsPerCorrect} points per correct answer • Passmark {config.passmark}%</p></div><div className={secondsLeft <= 60 ? "timer danger" : "timer"}>{minutes}:{seconds}</div></div><div className="question-layout"><div className="question-card"><div className="question-meta"><span>Question {current + 1} of {testQuestions.length}</span><span>{question.topic} • {question.difficulty}</span></div><h3>{question.prompt}</h3><div className="options">{question.options.map((option, index) => <button key={option} className={answers[question.id] === index ? "option selected" : "option"} onClick={() => setAnswers(old => ({ ...old, [question.id]: index }))}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div><div className="question-actions"><button className="secondary-button" disabled={current === 0} onClick={() => setCurrent(value => value - 1)}>Previous</button>{current < testQuestions.length - 1 ? <button className="primary-button" onClick={() => setCurrent(value => value + 1)}>Next</button> : <button className="primary-button" onClick={finish}>Submit CAT</button>}</div></div><aside className="question-map"><strong>Progress</strong><span>{answered} / {testQuestions.length} answered</span><div className="map-grid">{testQuestions.map((item, index) => <button key={item.id} className={answers[item.id] !== undefined ? "map-dot answered" : "map-dot"} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div><small>Your answers and timer are saved automatically. CAT is one assessment per three-RAT cycle.</small></aside></div></div>;
+function getCorrectIndexForReview(_id: string, _result: VerifiedAssessmentResult): number {
+  // The server deliberately does not expose answer keys before submission.
+  // Review text is therefore supplied through the explanation, while the
+  // exact answer key remains protected. Returning 0 avoids leaking it.
+  return 0;
 }
