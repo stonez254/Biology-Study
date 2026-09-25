@@ -207,6 +207,17 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
   }
   if (!rawAnswers) return res.status(400).json({ error: "Assessment answers are required." });
 
+  if (type === "REVISION") {
+    const missed = await pool.query(
+      "SELECT DISTINCT jsonb_array_elements_text(COALESCE(result->'missedQuestionIds', '[]'::jsonb)) AS question_id FROM assessment_submissions WHERE user_id = $1 AND result IS NOT NULL",
+      [req.user.id],
+    );
+    const authoritativeMissed = new Set(missed.rows.map(row => row.question_id));
+    if (questionIds.some(id => !authoritativeMissed.has(id))) {
+      return res.status(400).json({ error: "Revision contains a question that has not been officially missed." });
+    }
+  }
+
   const answers = {};
   for (const id of questionIds) {
     const expected = QUESTION_ANSWER_KEY[id];
@@ -258,8 +269,15 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     }
 
     if (existing.rows[0]?.result) {
+      const updated = await client.query("SELECT updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
       await client.query("COMMIT");
-      return res.json({ accepted: true, duplicate: true, submittedAt: existing.rows[0].submitted_at, result: existing.rows[0].result });
+      return res.json({
+        accepted: true,
+        duplicate: true,
+        submittedAt: existing.rows[0].submitted_at,
+        updatedAt: updated.rows[0]?.updated_at ?? null,
+        result: existing.rows[0].result,
+      });
     }
 
     const submittedAt = existing.rows[0]?.submitted_at ?? new Date().toISOString();
