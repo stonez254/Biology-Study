@@ -602,3 +602,7 @@ nav { gap: 7px; }
 .confirm-card h2{margin:0;font-size:28px}.confirm-card p,.confirm-card small{color:#91b9ba;line-height:1.55}.confirm-card label{display:grid;gap:7px;color:#bde8e8;font-size:12px;font-weight:700}.confirm-card input{width:100%;border:1px solid rgba(255,53,94,.45);border-radius:10px;padding:12px 13px;background:#061b1e;color:#fff;outline:none}.confirm-card input:focus{border-color:#ff355e;box-shadow:0 0 12px rgba(255,53,94,.25)}
 .danger-badge{border-color:#ff355e!important;color:#ff8ca3!important}.danger-action{background:linear-gradient(135deg,#7a1630 0%,#e52c57 52%,#ff355e 100%)!important;border-color:#ff355e!important}.danger-action:hover{background:linear-gradient(135deg,#9b1b3d 0%,#ff355e 52%,#ff6b86 100%)!important}.confirm-actions{display:flex;justify-content:flex-end;gap:10px}.confirm-actions button{min-width:120px}
 @media(max-width:560px){.confirm-card{padding:22px}.confirm-actions{flex-direction:column-reverse}.confirm-actions button{width:100%}}
+
+
+/* Account switcher */
+.account-list{display:grid;gap:.65rem;margin:1rem 0 1.1rem;max-height:260px;overflow:auto;padding-right:.2rem}.account-choice{width:100%;display:flex;align-items:center;gap:.75rem;text-align:left}.account-choice span:nth-child(2){display:flex;flex:1;flex-direction:column;gap:.15rem}.account-choice small{opacity:.7}.account-choice.selected{outline:2px solid var(--accent,#39ff88)}.account-choice b{margin-left:auto}
