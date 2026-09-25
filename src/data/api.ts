@@ -4,6 +4,7 @@ export type RemoteAccount = {
   id: string;
   studentName: string;
   username: string;
+  email: string | null;
   createdAt: string;
 };
 
@@ -27,17 +28,24 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export function backendEnabled() { return enabled(); }
 
-export async function registerRemote(studentName: string, password: string) {
+export async function registerRemote(studentName: string, email: string, password: string, username?: string) {
   return request<AuthResponse>("/api/auth/register", {
     method: "POST",
-    body: JSON.stringify({ studentName, password }),
+    body: JSON.stringify({ studentName, email, username, password }),
   });
 }
 
-export async function loginRemote(password: string, username?: string) {
+export async function loginRemote(password: string, emailOrLegacyUsername?: string) {
   return request<AuthResponse>("/api/auth/login", {
     method: "POST",
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email: emailOrLegacyUsername, password }),
+  });
+}
+
+export async function setAccountEmail(email: string) {
+  return request<{ account: RemoteAccount }>("/api/auth/email", {
+    method: "PUT",
+    body: JSON.stringify({ email }),
   });
 }
 
