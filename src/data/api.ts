@@ -67,7 +67,7 @@ export async function submitAssessment(
   questionIds: string[],
   answers: Record<string, number>,
 ) {
-  return request<{ accepted: boolean; duplicate: boolean; submittedAt: string; result: VerifiedAssessmentResult }>("/api/assessment/submit", {
+  return request<{ accepted: boolean; duplicate: boolean; submittedAt: string; updatedAt: string; result: VerifiedAssessmentResult }>("/api/assessment/submit", {
     method: "POST",
     body: JSON.stringify({ type, sessionId, questionIds, answers }),
   });
