@@ -45,11 +45,11 @@ export async function verifyEmail(email: string, code: string) {
 export async function resendVerification(email: string) {
   return request<{ ok: boolean }>("/api/auth/resend-verification", { method: "POST", body: JSON.stringify({ email }) });
 }
-export async function forgotPassword(email: string) {
-  return request<{ ok: boolean; message: string }>("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email }) });
+export async function forgotPassword(email: string, username: string, studentName: string) {
+  return request<{ ok: boolean; message: string; recoveryReady?: boolean }>("/api/auth/forgot-password", { method: "POST", body: JSON.stringify({ email, username, studentName }) });
 }
-export async function resetPassword(email: string, code: string, password: string) {
-  return request<AuthResponse>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, code, password }) });
+export async function resetPassword(email: string, username: string, studentName: string, password: string) {
+  return request<AuthResponse>("/api/auth/reset-password", { method: "POST", body: JSON.stringify({ email, username, studentName, password }) });
 }
 export async function setAccountEmail(email: string) {
   return request<{ verificationRequired: boolean; email: string; account?: RemoteAccount }>("/api/auth/email", { method: "PUT", body: JSON.stringify({ email }) });
