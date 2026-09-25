@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
+import { backendEnabled, claimAssessmentSession } from "../data/api";
 import { questions, type Question } from "../data/questions";
 import { selectCATQuestions } from "../data/questionSelector";
 import { clearActiveCAT, getActiveCAT, getCATStatus, hydrateQuestions, recordAssessmentAttempt, saveActiveCAT, getProgress, type StudyProgress } from "../data/progress";
@@ -45,7 +46,7 @@ export default function CAT({ onExit, onProgress }: Props) {
     const correct = testQuestions.filter(item => answers[item.id] === item.answer).length;
     const score = correct * config.pointsPerCorrect;
     const accuracy = Math.round((correct / testQuestions.length) * 100);
-    const next = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark, questionIds: testQuestions.map(item => item.id), correctQuestionIds: testQuestions.filter(item => answers[item.id] === item.answer).map(item => item.id) }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id));
+    const next = recordAssessmentAttempt("CAT", { score, correct, total: testQuestions.length, accuracy, passed: accuracy >= config.passmark, questionIds: testQuestions.map(item => item.id), correctQuestionIds: testQuestions.filter(item => answers[item.id] === item.answer).map(item => item.id) }, testQuestions.filter(item => answers[item.id] !== item.answer).map(item => item.id), sessionId);
     clearActiveCAT();
     onProgress(next);
     setSubmitted(true);
