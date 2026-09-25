@@ -667,6 +667,7 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     score,
     accuracy,
     passed: passmark === null ? true : accuracy >= passmark,
+    correctAnswers: Object.fromEntries(correctQuestionIds.map(id => [id, expectedAnswers[id]])),
   };
 
   const client = await pool.connect();
@@ -738,7 +739,7 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     await client.query("UPDATE verified_account_state SET points = $2, updated_at = NOW() WHERE user_id = $1", [req.user.id, nextVerifiedPoints]);
     const updated = await client.query("SELECT updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
     await client.query("COMMIT");
-    return res.json({ accepted: true, duplicate: false, submittedAt, updatedAt: updated.rows[0]?.updated_at ?? null, result });
+    return res.json({ accepted: true, duplicate: false, submittedAt, updatedAt: updated.rows[0]?.updated_at ?? null, verifiedPoints: nextVerifiedPoints, result });
   } catch (error) {
     await client.query("ROLLBACK");
     console.error("assessment submit", error);
