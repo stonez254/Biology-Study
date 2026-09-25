@@ -83,7 +83,7 @@ export async function createLocalAccount(studentName: string, email: string, pas
 export async function verifyLocalPassword(password: string, identifier?: string): Promise<LocalAccount | null> {
   if (backendEnabled()) {
     try {
-      const loginIdentifier = identifier || getAccount()?.email || getAccount()?.username;
+      const loginIdentifier: string | undefined = identifier || getAccount()?.email || getAccount()?.username;
       if (!loginIdentifier) return null;
       const response = await loginRemote(password, loginIdentifier);
       if (!response.token) return null;
