@@ -10,6 +10,7 @@ const { Pool } = pg;
 const app = express();
 const port = Number(process.env.PORT || 10000);
 const jwtSecret = process.env.JWT_SECRET;
+const emailVerificationEnabled = String(process.env.EMAIL_VERIFICATION_ENABLED || "false").toLowerCase() === "true";
 
 if (!process.env.DATABASE_URL || !jwtSecret) {
   console.error("DATABASE_URL and JWT_SECRET are required.");
@@ -250,8 +251,18 @@ app.post("/api/auth/register", async (req, res) => {
       [id, studentName, username, email, passwordHash],
     );
     await pool.query("INSERT INTO verified_account_state (user_id, points) VALUES ($1, 0) ON CONFLICT (user_id) DO NOTHING", [id]);
-    try { const code = await issueCode(email, "signup", 10); await sendVerificationCode(email, "signup", code); } catch (mailError) { await pool.query("DELETE FROM users WHERE id = $1", [id]); console.error("signup email", mailError); return res.status(503).json({ error: "We could not send the verification email. Please try again shortly." }); }
-    return res.status(201).json({ verificationRequired: true, account: publicUser(result.rows[0]) });
+    if (emailVerificationEnabled) {
+      try {
+        const code = await issueCode(email, "signup", 10);
+        await sendVerificationCode(email, "signup", code);
+      } catch (mailError) {
+        await pool.query("DELETE FROM users WHERE id = $1", [id]);
+        console.error("signup email", mailError);
+        return res.status(503).json({ error: "We could not send the verification email. Please try again shortly." });
+      }
+      return res.status(201).json({ verificationRequired: true, account: publicUser(result.rows[0]) });
+    }
+    return res.status(201).json({ verificationRequired: false, token: signUser(id), account: publicUser(result.rows[0]), progress: null, updatedAt: null });
   } catch (error) {
     if (error?.code === "23505") return res.status(409).json({ error: "That username or email address is already registered." });
     console.error("register", error);
@@ -297,7 +308,7 @@ app.post("/api/auth/login", async (req, res) => {
         emailRequired: true,
       });
     }
-    if (!user.email_verified) return res.status(403).json({ error: "Please verify your email address before signing in.", verificationRequired: true, email: user.email });
+    if (emailVerificationEnabled && !user.email_verified) return res.status(403).json({ error: "Please verify your email address before signing in.", verificationRequired: true, email: user.email });
 
     const progress = await pool.query("SELECT progress, updated_at FROM study_progress WHERE user_id = $1", [user.id]);
     const token = signUser(user.id);
@@ -361,19 +372,38 @@ app.post("/api/auth/forgot-password", async (req,res) => {
   if (!checkAuthRateLimit(req,res,"code")) return;
   try {
     const email=normalizeEmail(req.body?.email);
-    if(!isValidEmail(email)) return res.status(400).json({error:"Please provide a valid email address."});
-    const r=await pool.query("SELECT email_verified FROM users WHERE LOWER(email)=LOWER($1)",[email]);
-    if(r.rows[0]?.email_verified){const code=await issueCode(email,"password-reset",15);await sendVerificationCode(email,"password-reset",code);}
-    return res.json({ok:true,message:"If that email belongs to a verified account, a reset code has been sent."});
-  } catch(error) { console.error("forgot password",error); return res.status(503).json({error:"Unable to send the reset code right now."}); }
+    const username=normalizeUsername(req.body?.username);
+    const studentName=String(req.body?.studentName||"").trim();
+    if(!isValidEmail(email)||username.length<2||studentName.length<2||studentName.length>80) {
+      return res.status(400).json({error:"Enter your registered email, username and student name."});
+    }
+    const r=await pool.query(
+      "SELECT id,student_name,username,email FROM users WHERE LOWER(email)=LOWER($1) AND username=$2 LIMIT 1",
+      [email,username],
+    );
+    const user=r.rows[0];
+    if(!user || user.student_name.trim().toLowerCase() !== studentName.toLowerCase()) {
+      return res.status(400).json({error:"The account details could not be matched. Check your email, username and student name."});
+    }
+    return res.json({ok:true,message:"Account matched. You can now choose a new password.",recoveryReady:true});
+  } catch(error) { console.error("forgot password",error); return res.status(500).json({error:"Unable to start account recovery."}); }
 });
 app.post("/api/auth/reset-password", async (req,res) => {
   if (!checkAuthRateLimit(req,res,"reset")) return;
   try {
-    const email=normalizeEmail(req.body?.email), code=String(req.body?.code||"").trim(), password=String(req.body?.password||"");
-    if(!isValidEmail(email)||!/^\d{6}$/.test(code)||password.length<6||password.length>128) return res.status(400).json({error:"Enter a valid email, 6-digit code and password of 6-128 characters."});
-    const r=await pool.query("SELECT * FROM users WHERE LOWER(email)=LOWER($1) AND email_verified=TRUE",[email]), user=r.rows[0];
-    if(!user||!(await verifyCode(email,"password-reset",code))) return res.status(400).json({error:"The reset code is invalid or expired."});
+    const email=normalizeEmail(req.body?.email);
+    const username=normalizeUsername(req.body?.username);
+    const studentName=String(req.body?.studentName||"").trim();
+    const password=String(req.body?.password||"");
+    if(!isValidEmail(email)||username.length<2||studentName.length<2||studentName.length>80||password.length<6||password.length>128)
+      return res.status(400).json({error:"Enter your registered email, username, student name and a password of 6-128 characters."});
+    const r=await pool.query(
+      "SELECT * FROM users WHERE LOWER(email)=LOWER($1) AND username=$2 LIMIT 1",
+      [email,username],
+    );
+    const user=r.rows[0];
+    if(!user || user.student_name.trim().toLowerCase() !== studentName.toLowerCase())
+      return res.status(400).json({error:"The account details could not be matched."});
     const hash=await bcrypt.hash(password,12);
     const u=await pool.query("UPDATE users SET password_hash=$2 WHERE id=$1 RETURNING id,student_name,username,email,email_verified,created_at",[user.id,hash]);
     const p=await pool.query("SELECT progress,updated_at FROM study_progress WHERE user_id=$1",[user.id]);
