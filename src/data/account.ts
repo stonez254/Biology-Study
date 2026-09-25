@@ -68,7 +68,8 @@ export async function createLocalAccount(studentName: string, email: string, pas
 
   if (backendEnabled()) {
     const response = await registerRemote(cleanName, cleanEmail, password, username?.trim());
-    if (response.token) localStorage.setItem("biology-study:auth-token", response.token);
+    if (response.token) if (!response.token) return null;
+      localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
     const saved = saveAccount(response.account);
     setCloudUpdatedAt(response.updatedAt);
@@ -101,7 +102,9 @@ export async function saveAccountEmail(email: string): Promise<LocalAccount | nu
   if (!backendEnabled() || !hasRemoteSession()) return getAccount();
   try {
     const response = await setAccountEmail(email.trim().toLowerCase());
-    return saveAccount(response.account);
+    const current = getAccount();
+    if (!current) return null;
+    return saveAccount({ ...current, email: response.email });
   } catch {
     return null;
   }
