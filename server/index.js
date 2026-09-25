@@ -667,7 +667,7 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     score,
     accuracy,
     passed: passmark === null ? true : accuracy >= passmark,
-    correctAnswers: Object.fromEntries(correctQuestionIds.map(id => [id, expectedAnswers[id]])),
+    correctAnswers: Object.fromEntries(questionIds.map(id => [id, expectedAnswers[id]])),
   };
 
   const client = await pool.connect();
