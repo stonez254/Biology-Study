@@ -1,4 +1,4 @@
-import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, registerRemote, saveRemoteProgress, setAccountEmail } from "./api";
+import { backendEnabled, clearRemoteSession, fetchRemoteProgress, loginRemote, registerRemote, saveRemoteProgress, setAccountEmail, verifyEmail, resendVerification, forgotPassword, resetPassword, verifyAccountEmail } from "./api";
 
 export type LocalAccount = { id: string; studentName: string; username: string; email?: string | null; passwordHash?: string; createdAt: string; };
 
@@ -67,7 +67,7 @@ export async function createLocalAccount(studentName: string, email: string, pas
 
   if (backendEnabled()) {
     const response = await registerRemote(cleanName, cleanEmail, password, username?.trim());
-    localStorage.setItem("biology-study:auth-token", response.token);
+    if (response.token) localStorage.setItem("biology-study:auth-token", response.token);
     if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
     const saved = saveAccount(response.account);
     setCloudUpdatedAt(response.updatedAt);
@@ -218,4 +218,48 @@ export async function clearAccountStudyData(accountId: string): Promise<void> {
       // Keep the local reset, but do not pretend the cloud reset succeeded.
     }
   }
+}
+
+export async function verifyPendingEmail(email: string, code: string): Promise<LocalAccount | null> {
+  if (!backendEnabled()) return null;
+  try {
+    const response = await verifyEmail(email.trim().toLowerCase(), code.trim());
+    if (!response.token) return null;
+    localStorage.setItem("biology-study:auth-token", response.token);
+    const saved = saveAccount(response.account);
+    setCloudUpdatedAt(response.updatedAt);
+    if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
+    return saved;
+  } catch { return null; }
+}
+
+export async function resendPendingEmail(email: string) {
+  return resendVerification(email.trim().toLowerCase());
+}
+
+export async function requestPasswordReset(email: string) {
+  return forgotPassword(email.trim().toLowerCase());
+}
+
+export async function completePasswordReset(email: string, code: string, password: string): Promise<LocalAccount | null> {
+  try {
+    const response = await resetPassword(email.trim().toLowerCase(), code.trim(), password);
+    if (!response.token) return null;
+    localStorage.setItem("biology-study:auth-token", response.token);
+    const saved = saveAccount(response.account);
+    setCloudUpdatedAt(response.updatedAt);
+    if (response.progress) localStorage.setItem("biology-study:remote-progress", JSON.stringify(response.progress));
+    return saved;
+  } catch { return null; }
+}
+
+export async function startAccountEmailVerification(email: string) {
+  return setAccountEmail(email.trim().toLowerCase());
+}
+
+export async function finishAccountEmailVerification(email: string, code: string): Promise<LocalAccount | null> {
+  try {
+    const response = await verifyAccountEmail(email.trim().toLowerCase(), code.trim());
+    return saveAccount(response.account);
+  } catch { return null; }
 }
