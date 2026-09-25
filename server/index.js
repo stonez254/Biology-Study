@@ -361,6 +361,30 @@ app.post("/api/auth/reset-password", async (req,res) => {
   } catch(error) { console.error("reset password",error); return res.status(500).json({error:"Unable to reset the password."}); }
 });
 
+
+app.put("/api/auth/email", auth, async (req,res) => {
+  try {
+    const email=normalizeEmail(req.body?.email);
+    if(!isValidEmail(email)) return res.status(400).json({error:"Please provide a valid email address."});
+    const existing=await pool.query("SELECT id FROM users WHERE LOWER(email)=LOWER($1) AND id<>$2",[email,req.user.id]);
+    if(existing.rows[0]) return res.status(409).json({error:"That email address is already registered."});
+    const code=await issueCode(email,"email-change",10);
+    await sendVerificationCode(email,"email-change",code);
+    return res.json({verificationRequired:true,email});
+  } catch(error) { console.error("set email",error); return res.status(503).json({error:"Unable to send the verification code right now."}); }
+});
+app.post("/api/auth/email/verify", auth, async (req,res) => {
+  try {
+    const email=normalizeEmail(req.body?.email), code=String(req.body?.code||"").trim();
+    if(!isValidEmail(email)||!/^\d{6}$/.test(code)) return res.status(400).json({error:"Enter the 6-digit verification code."});
+    const existing=await pool.query("SELECT id FROM users WHERE LOWER(email)=LOWER($1) AND id<>$2",[email,req.user.id]);
+    if(existing.rows[0]) return res.status(409).json({error:"That email address is already registered."});
+    if(!(await verifyCode(email,"email-change",code))) return res.status(400).json({error:"The verification code is invalid or expired."});
+    const result=await pool.query("UPDATE users SET email=$2,email_verified=TRUE WHERE id=$1 RETURNING id,student_name,username,email,email_verified,created_at",[req.user.id,email]);
+    return res.json({account:publicUser(result.rows[0])});
+  } catch(error) { console.error("verify account email",error); return res.status(500).json({error:"Unable to save the verified email address."}); }
+});
+
 app.get("/api/me", auth, async (req, res) => res.json({ account: publicUser(req.user) }));
 
 app.get("/api/progress", auth, async (req, res) => {
