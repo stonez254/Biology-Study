@@ -4,6 +4,7 @@ import pg from "pg";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
+import { QUESTION_ANSWER_KEY } from "./questionAnswerKey.js";
 
 const { Pool } = pg;
 const app = express();
@@ -27,8 +28,7 @@ await pool.query(`
     username TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-  );
-  CREATE TABLE IF NOT EXISTS study_progress (
+undefined  CREATE TABLE IF NOT EXISTS study_progress (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     progress JSONB NOT NULL DEFAULT '{}'::jsonb,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -173,6 +173,90 @@ app.post("/api/assessment/claim", auth, async (req, res) => {
     [req.user.id, sessionId, type],
   );
   return res.json({ accepted: Boolean(result.rows[0]), submittedAt: result.rows[0]?.submitted_at ?? null });
+});
+
+app.post("/api/assessment/submit", auth, async (req, res) => {
+  const type = String(req.body?.type || "").toUpperCase();
+  const sessionId = String(req.body?.sessionId || "");
+  const questionIds = Array.isArray(req.body?.questionIds) ? req.body.questionIds.map(value => String(value)) : [];
+  const rawAnswers = req.body?.answers && typeof req.body.answers === "object" && !Array.isArray(req.body.answers) ? req.body.answers : null;
+
+  if (!["RAT", "CAT", "REVISION"].includes(type)) {
+    return res.status(400).json({ error: "Invalid assessment type." });
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
+    return res.status(400).json({ error: "Invalid assessment session." });
+  }
+  if (!questionIds.length || questionIds.length > 100 || new Set(questionIds).size !== questionIds.length) {
+    return res.status(400).json({ error: "Invalid assessment questions." });
+  }
+  if (!rawAnswers) return res.status(400).json({ error: "Assessment answers are required." });
+
+  const answers = {};
+  for (const id of questionIds) {
+    const expected = QUESTION_ANSWER_KEY[id];
+    if (typeof expected !== "number") return res.status(400).json({ error: "Assessment contains an unknown question." });
+    const value = rawAnswers[id];
+    if (!Number.isInteger(value) || value < 0 || value > 2) {
+      return res.status(400).json({ error: "Assessment contains an invalid answer." });
+    }
+    answers[id] = value;
+  }
+
+  const correctQuestionIds = questionIds.filter(id => answers[id] === QUESTION_ANSWER_KEY[id]);
+  const missedQuestionIds = questionIds.filter(id => answers[id] !== QUESTION_ANSWER_KEY[id]);
+  const correct = correctQuestionIds.length;
+  const total = questionIds.length;
+  const pointsPerCorrect = type === "REVISION" ? 2 : type === "RAT" ? 5 : 10;
+  const passmark = type === "REVISION" ? null : 50;
+  const score = correct * pointsPerCorrect;
+  const accuracy = Math.round((correct / total) * 100);
+  const result = {
+    type,
+    sessionId,
+    questionIds,
+    correctQuestionIds,
+    missedQuestionIds,
+    correct,
+    total,
+    score,
+    accuracy,
+    passed: passmark === null ? true : accuracy >= passmark,
+  };
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const inserted = await client.query(
+      `INSERT INTO assessment_submissions (user_id, session_id, assessment_type, result)
+       VALUES ($1, $2, $3, $4::jsonb)
+       ON CONFLICT (user_id, session_id) DO NOTHING
+       RETURNING submitted_at`,
+      [req.user.id, sessionId, type, JSON.stringify(result)],
+    );
+
+    if (inserted.rows[0]) {
+      await client.query("COMMIT");
+      return res.json({ accepted: true, duplicate: false, submittedAt: inserted.rows[0].submitted_at, result });
+    }
+
+    const existing = await client.query(
+      "SELECT assessment_type, result, submitted_at FROM assessment_submissions WHERE user_id = $1 AND session_id = $2",
+      [req.user.id, sessionId],
+    );
+    await client.query("COMMIT");
+    if (!existing.rows[0]) return res.status(409).json({ error: "Assessment submission could not be recovered." });
+    if (existing.rows[0].assessment_type !== type || !existing.rows[0].result) {
+      return res.status(409).json({ error: "Assessment session does not match its stored submission." });
+    }
+    return res.json({ accepted: true, duplicate: true, submittedAt: existing.rows[0].submitted_at, result: existing.rows[0].result });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("assessment submit", error);
+    return res.status(500).json({ error: "Assessment submission could not be verified." });
+  } finally {
+    client.release();
+  }
 });
 
 app.get("/api/assessment-state/:type", auth, async (req, res) => {
