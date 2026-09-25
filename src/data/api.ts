@@ -57,6 +57,26 @@ export async function setAccountEmail(email: string) {
 export async function verifyAccountEmail(email: string, code: string) {
   return request<{ account: RemoteAccount }>("/api/auth/email/verify", { method: "POST", body: JSON.stringify({ email, code }) });
 }
+export type RemoteQuestion = {
+  id: string;
+  source: string;
+  sourceId: string;
+  subject: string;
+  topic: string | null;
+  question: string;
+  options: string[];
+  explanation: string | null;
+  difficulty: string;
+  metadata: Record<string, unknown>;
+};
+
+export async function createQuestionBankAssessment(type: "RAT" | "CAT", count: 10 | 20, source = "medmcqa", subject = "") {
+  return request<{ sessionId: string; questions: RemoteQuestion[] }>("/api/question-bank/assessment", {
+    method: "POST",
+    body: JSON.stringify({ type, count, source, subject }),
+  });
+}
+
 export async function claimAssessmentSession(type: "RAT" | "CAT" | "REVISION", sessionId: string) {
   return request<{ accepted: boolean; submittedAt: string | null }>("/api/assessment/claim", { method: "POST", body: JSON.stringify({ type, sessionId }) });
 }
