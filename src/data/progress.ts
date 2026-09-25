@@ -18,7 +18,7 @@ export type StudyProgress = {
   activeCAT?: SavedCAT | null;
   activeRevision?: SavedRevision | null;
 };
-export type SavedAssessment = { sessionId: string; questionIds: string[]; current: number; answers: Record<string, number>; secondsLeft: number; startedAt: string; };
+export type SavedAssessment = { sessionId?: string; questionIds: string[]; current: number; answers: Record<string, number>; secondsLeft: number; startedAt: string; };
 export type SavedRAT = SavedAssessment;
 export type SavedCAT = SavedAssessment;
 export type SavedRevision = Omit<SavedAssessment, "secondsLeft">;
