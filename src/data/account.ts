@@ -104,6 +104,7 @@ export async function saveAccountEmail(email: string): Promise<LocalAccount | nu
   if (!backendEnabled() || !hasRemoteSession()) return getAccount();
   try {
     const response = await setAccountEmail(email.trim().toLowerCase());
+    if (response.account) return saveAccount(response.account);
     const current = getAccount();
     if (!current) return null;
     return saveAccount({ ...current, email: response.email });
