@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
 import { setCloudUpdatedAt } from "../data/account";
 import { backendEnabled, createQuestionBankAssessment, submitAssessment, type RemoteQuestion, type VerifiedAssessmentResult } from "../data/api";
-import { clearActiveCAT, getCATStatus, getProgress, type StudyProgress } from "../data/progress";
+import { clearActiveCAT, getCATStatus, getProgress, recordAssessmentAttempt, type StudyProgress } from "../data/progress";
 
 type Props = { onExit: () => void; onProgress: (progress: StudyProgress) => void };
 
@@ -95,23 +95,20 @@ export default function CAT({ onExit, onProgress }: Props) {
   }, [secondsLeft, submitted, testQuestions.length]);
 
   function recordRemoteAttempt(result: VerifiedAssessmentResult): StudyProgress {
-    const latest = getProgress();
-    const attempt = {
-      date: new Date().toISOString(),
-      score: result.score,
-      correct: result.correct,
-      total: result.total,
-      accuracy: result.accuracy,
-      passed: result.passed,
-      questionIds: result.questionIds,
-      correctQuestionIds: result.correctQuestionIds,
-    };
-    return {
-      ...latest,
-      attempts: [...latest.attempts, attempt],
-      missedQuestionIds: Array.from(new Set([...latest.missedQuestionIds, ...result.missedQuestionIds])),
-      points: result.score + latest.points,
-    };
+    return recordAssessmentAttempt(
+      "CAT",
+      {
+        score: result.score,
+        correct: result.correct,
+        total: result.total,
+        accuracy: result.accuracy,
+        passed: result.passed,
+        questionIds: result.questionIds,
+        correctQuestionIds: result.correctQuestionIds,
+      },
+      result.missedQuestionIds,
+      result.sessionId,
+    );
   }
 
   if (!progress.eligible) {
@@ -135,7 +132,7 @@ export default function CAT({ onExit, onProgress }: Props) {
   if (submitted && verifiedResult) {
     const result = verifiedResult;
     const correctIds = new Set(result.correctQuestionIds);
-    return <div className="content"><div className="result-card"><span className={result.passed ? "badge success" : "badge warning"}>{result.passed ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{result.score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>The server verified {result.correct} of {result.total} questions correctly.</p><div className="result-grid"><div><strong>{result.correct}</strong><span>Correct</span></div><div><strong>{result.total - result.correct}</strong><span>Incorrect</span></div><div><strong>{result.accuracy}%</strong><span>Accuracy</span></div></div><div className="review-list"><h3>Missed questions • Review</h3>{testQuestions.filter(item => !correctIds.has(item.id)).map(item => <article className="review-item" key={item.id}><strong>{item.question}</strong><p><b>Correct answer:</b> {item.options[result.questionIds.indexOf(item.id) >= 0 ? getCorrectIndexForReview(item.id, result) : 0] ?? "See server-verified result"}</p><p>{item.explanation ?? "Review this question before your next assessment."}</p><small>{item.subject}{item.topic ? ` • ${item.topic}` : ""}</small></article>)}{result.missedQuestionIds.length === 0 && <p className="review-empty">Perfect score. No missed questions to review.</p>}</div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div></div>;
+    return <div className="content"><div className="result-card"><span className={result.passed ? "badge success" : "badge warning"}>{result.passed ? "CAT PASSED" : "CAT REVIEW"}</span><h2>{result.score} / {config.questionCount * config.pointsPerCorrect} points</h2><p>The server verified {result.correct} of {result.total} questions correctly.</p><div className="result-grid"><div><strong>{result.correct}</strong><span>Correct</span></div><div><strong>{result.total - result.correct}</strong><span>Incorrect</span></div><div><strong>{result.accuracy}%</strong><span>Accuracy</span></div></div><div className="review-list"><h3>Missed questions • Review</h3>{testQuestions.filter(item => !correctIds.has(item.id)).map(item => <article className="review-item" key={item.id}><strong>{item.question}</strong><p><b>Correct answer:</b> {result.correctAnswers?.[item.id] !== undefined ? String.fromCharCode(65 + result.correctAnswers[item.id]) + ". " + item.options[result.correctAnswers[item.id]] : "See server-verified result"}</p><p>{item.explanation ?? "Review this question before your next assessment."}</p><small>{item.subject}{item.topic ? ` • ${item.topic}` : ""}</small></article>)}{result.missedQuestionIds.length === 0 && <p className="review-empty">Perfect score. No missed questions to review.</p>}</div><div className="result-actions"><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div></div>;
   }
 
   const question = testQuestions[current];
@@ -144,11 +141,4 @@ export default function CAT({ onExit, onProgress }: Props) {
   const seconds = (secondsLeft % 60).toString().padStart(2, "0");
 
   return <div className="content"><div className="test-header"><div><span className="eyebrow">Continuous Assessment Test</span><h2>CAT</h2><p>{config.questionCount} questions • 30 minutes • {config.pointsPerCorrect} points per correct answer • Passmark {config.passmark}%</p></div><div className={secondsLeft <= 60 ? "timer danger" : "timer"}>{minutes}:{seconds}</div></div><div className="question-layout"><div className="question-card"><div className="question-meta"><span>Question {current + 1} of {testQuestions.length}</span><span>{question.subject}{question.topic ? ` • ${question.topic}` : ""}</span></div><h3>{question.question}</h3><div className="options">{question.options.map((option,index)=><button key={option} className={answers[question.id] === index ? "option selected" : "option"} onClick={() => setAnswers(old => ({...old,[question.id]:index}))}><span>{String.fromCharCode(65 + index)}</span>{option}</button>)}</div><div className="question-actions"><button className="secondary-button" disabled={current === 0} onClick={() => setCurrent(value => value - 1)}>Previous</button>{current < testQuestions.length - 1 ? <button className="primary-button" onClick={() => setCurrent(value => value + 1)}>Next</button> : <button className="primary-button" onClick={finish}>Submit CAT</button>}</div></div><aside className="question-map"><strong>Progress</strong><span>{answered} / {testQuestions.length} answered</span><div className="map-grid">{testQuestions.map((item,index)=><button key={item.id} className={answers[item.id] !== undefined ? "map-dot answered" : "map-dot"} onClick={() => setCurrent(index)}>{index + 1}</button>)}</div><small>Your answers are submitted to the server and scored against the protected question bank.</small></aside></div></div>;
-}
-
-function getCorrectIndexForReview(_id: string, _result: VerifiedAssessmentResult): number {
-  // The server deliberately does not expose answer keys before submission.
-  // Review text is therefore supplied through the explanation, while the
-  // exact answer key remains protected. Returning 0 avoids leaking it.
-  return 0;
 }
