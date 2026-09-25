@@ -74,7 +74,8 @@ export async function createLocalAccount(studentName: string, email: string, pas
     return saved;
   }
 
-  const account: LocalAccount = { id: crypto.randomUUID(), studentName: cleanName, username: cleanName, passwordHash: await hashPassword(password), createdAt: new Date().toISOString() };
+  const cleanUsername = (username || cleanName).trim().toLowerCase().replace(/\s+/g, "");
+  const account: LocalAccount = { id: crypto.randomUUID(), studentName: cleanName, username: cleanUsername, email: cleanEmail, passwordHash: await hashPassword(password), createdAt: new Date().toISOString() };
   return saveAccount(account);
 }
 
