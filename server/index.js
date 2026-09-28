@@ -783,22 +783,13 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
     const currentVerifiedPoints = Number(verifiedState.rows[0]?.points ?? 0);
     const nextVerifiedPoints = currentVerifiedPoints + score;
 
+    // Serialize assessment submissions per account so two RAT sessions cannot race.
+    await client.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [req.user.id]);
+
     const existing = await client.query(
       "SELECT assessment_type, result, submitted_at, question_ids FROM assessment_submissions WHERE user_id = $1 AND session_id = $2 FOR UPDATE",
       [req.user.id, sessionId],
     );
-
-    if (existing.rows[0] && existing.rows[0].assessment_type !== type) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "Assessment session does not match its stored submission." });
-    }
-    if (existing.rows[0]?.question_ids) {
-      const storedQuestionIds = Array.isArray(existing.rows[0].question_ids) ? existing.rows[0].question_ids.map(String) : [];
-      if (storedQuestionIds.length && (storedQuestionIds.length !== questionIds.length || storedQuestionIds.some((id, index) => id !== questionIds[index]))) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({ error: "Assessment questions do not match the issued session." });
-      }
-    }
 
     if (existing.rows[0]?.result) {
       const updated = await client.query("SELECT updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
@@ -810,6 +801,30 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
         updatedAt: updated.rows[0]?.updated_at ?? null,
         result: existing.rows[0].result,
       });
+    }
+
+    // A RAT can be completed only once per calendar day, using Kenya time.
+    if (type === "RAT") {
+      const dailyRAT = await client.query(
+        "SELECT session_id FROM assessment_submissions WHERE user_id = $1 AND assessment_type = 'RAT' AND result IS NOT NULL AND (submitted_at AT TIME ZONE 'Africa/Nairobi')::date = (NOW() AT TIME ZONE 'Africa/Nairobi')::date AND session_id <> $2 LIMIT 1",
+        [req.user.id, sessionId],
+      );
+      if (dailyRAT.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Today's RAT has already been completed. You can take the next RAT tomorrow." });
+      }
+    }
+
+    if (existing.rows[0] && existing.rows[0].assessment_type !== type) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "Assessment session does not match its stored submission." });
+    }
+    if (existing.rows[0]?.question_ids) {
+      const storedQuestionIds = Array.isArray(existing.rows[0].question_ids) ? existing.rows[0].question_ids.map(String) : [];
+      if (storedQuestionIds.length && (storedQuestionIds.length !== questionIds.length || storedQuestionIds.some((id, index) => id !== questionIds[index]))) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Assessment questions do not match the issued session." });
+      }
     }
 
     const submittedAt = existing.rows[0]?.submitted_at ?? new Date().toISOString();
