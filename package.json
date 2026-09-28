@@ -8,8 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "import:medmcqa": "node server/scripts/importMedmcqa.mjs",
-    "db:reset-users": "node server/scripts/resetUserData.mjs"
+    "import:medmcqa": "node server/scripts/importMedmcqa.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
