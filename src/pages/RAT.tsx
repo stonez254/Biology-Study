@@ -5,9 +5,8 @@ import { backendEnabled, submitAssessment } from "../data/api";
 import { questions, type Question, getQuestionsForLesson } from "../data/questions";
 import type { CurriculumTrack } from "../data/curriculum";
 import type { SchoolForm } from "../data/schoolForm";
-import { getTodaysLessonId } from "../data/progress";
 import { selectRATQuestions } from "../data/questionSelector";
-import { canUseRATRetakeToday, clearActiveRAT, consumeRATRetake, getActiveRAT, getProgress, hasCompletedRATToday, hasReadLessonToday, hydrateQuestions, recordRATAttempt, saveActiveRAT, type StudyProgress } from "../data/progress";
+import { canUseRATRetakeToday, clearActiveRAT, consumeRATRetake, getActiveRAT, getProgress, getTodaysLessonId, hasCompletedRATToday, hasReadLessonToday, hydrateQuestions, recordRATAttempt, saveActiveRAT, type StudyProgress } from "../data/progress";
 type Props={curriculum:CurriculumTrack;schoolForm:SchoolForm;onExit:()=>void;onProgress:(progress:StudyProgress)=>void;onLesson:()=>void};
 
 export default function RAT({curriculum,schoolForm,onExit,onProgress,onLesson}:Props){
