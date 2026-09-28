@@ -4,17 +4,19 @@ import { foundationQuestionSeeds } from "./questionSeedsFoundations";
 import { expandedQuestionSeeds } from "./questionSeedsExtended";
 import { expansion90QuestionSeeds } from "./questionSeedsExpansion90";
 import { highSchoolQuestionSeeds } from "./questionSeedsHighSchool";
+import { highSchoolForm1ExpansionSeeds } from "./questionSeedsHighSchoolForm1";
 import type { CurriculumTrack } from "./curriculum";
 import { matchesCurriculum } from "./questionCurriculum";
 import { getVirtualLessonQuestionsMatch } from "./highSchoolLessons";
 
 export type { QuestionSeed };
 
-export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds, ...highSchoolQuestionSeeds];
+export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds, ...highSchoolQuestionSeeds, ...highSchoolForm1ExpansionSeeds];
 
 const lessonIds = new Set([
   "hs-f1-introduction",
   "hs-f1-cell",
+  "hs-f1-cell-physiology",
   "hs-f1-classification",
   "hs-f1-nutrition",
   "hs-f2-gaseous-exchange",
