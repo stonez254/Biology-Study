@@ -839,7 +839,7 @@ app.listen(port, () => console.log(`Biology-Study API listening on port ${port}`
        LEFT JOIN verified_account_state vas ON vas.user_id = u.id
        LEFT JOIN study_progress sp ON sp.user_id = u.id
        ORDER BY points DESC, streak DESC, lessons_completed DESC, u.username ASC
-       LIMIT 100`,
+       LIMIT 500`,
     );
     return res.json({
       learners: result.rows.map((row, index) => ({
