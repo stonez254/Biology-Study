@@ -15,6 +15,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
   const [leaderboardTotal, setLeaderboardTotal] = useState(0);
   const [leaderboardLoading, setLeaderboardLoading] = useState(true);
   const [leaderboardError, setLeaderboardError] = useState("");
+  const [leaderboardMinPoints, setLeaderboardMinPoints] = useState(0);
 
   const loadLeaderboard = async () => {
     setLeaderboardLoading(true);
@@ -137,6 +138,10 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
   const bestPracticeCombo = practice.length ? Math.max(...practice.map(s => s.maxCombo)) : 0;
   const bestAssessmentAccuracy = data.attempts.length ? Math.max(...data.attempts.map(a => a.accuracy)) : 0;
   const recommendations = buildRecommendations(data, progress);
+  const filteredLeaderboard = useMemo(
+    () => leaderboard.filter(learner => learner.points >= leaderboardMinPoints),
+    [leaderboard, leaderboardMinPoints],
+  );
 
   return <div className="content analytics-page">
     <section className="analytics-heading">
