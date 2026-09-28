@@ -21,6 +21,15 @@ function randomize<T>(items: T[]): T[] {
   return result;
 }
 
+function randomizeQuestionOptions(question: Question): Question {
+  const shuffled = randomize(question.options.map((option, index) => ({ option, index })));
+  return {
+    ...question,
+    options: shuffled.map(item => item.option),
+    answer: shuffled.findIndex(item => item.index === question.answer),
+  };
+}
+
 function inferQuestionType(question: Question): QuestionType {
   if (question.questionType) return question.questionType;
   const prompt = question.prompt.toLowerCase();
@@ -125,7 +134,7 @@ function selectSmart(
     subtopicCounts.set(key, (subtopicCounts.get(key) ?? 0) + 1);
   }
 
-  return randomize(chosen);
+  return randomize(chosen).map(randomizeQuestionOptions);
 }
 
 export function selectRATQuestions(
