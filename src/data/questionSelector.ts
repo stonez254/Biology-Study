@@ -23,9 +23,14 @@ function randomize<T>(items: T[]): T[] {
 
 function randomizeQuestionOptions(question: Question): Question {
   const shuffled = randomize(question.options.map((option, index) => ({ option, index })));
+  const options: [string, string, string] = [
+    shuffled[0].option,
+    shuffled[1].option,
+    shuffled[2].option,
+  ];
   return {
     ...question,
-    options: shuffled.map(item => item.option),
+    options,
     answer: shuffled.findIndex(item => item.index === question.answer),
   };
 }
