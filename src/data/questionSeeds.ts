@@ -1,8 +1,11 @@
+import type { CurriculumTrack } from "./curriculum";
+
 export type QuestionType = "concept" | "application" | "scenario" | "identification" | "calculation";
 
 export type QuestionSeed = {
   id: string;
   lessonId: string;
+  curriculum?: CurriculumTrack;
   topic: string;
   subtopic?: string;
   questionType?: QuestionType;
