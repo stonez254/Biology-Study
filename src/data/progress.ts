@@ -12,7 +12,7 @@ export type RevisionAttempt = { id: string; completedAt: string; score: number; 
 export type StudyProgress = {
   points: number; streak: number; lastStudyDate: string | null; attempts: AssessmentAttempt[];
   missedQuestionIds: string[]; revisionAttempts: RevisionAttempt[];
-  lessonReadDate: string | null; lessonReadId: string | null; ratRetakeDate: string | null;
+  lessonReadDate: string | null; lessonReadId: string | null;
   completedLessonIds: string[];
   lessonHistory: { lessonId: string; completedAt: string }[];
   practiceSessions: PracticeSession[];
@@ -28,13 +28,13 @@ export type SavedRevision = Omit<SavedAssessment, "secondsLeft">;
 const PROGRESS_KEY="biology-study:progress", RAT_KEY="biology-study:active-rat", CAT_KEY="biology-study:active-cat", REVISION_KEY="biology-study:active-revision";
 function scopedKey(key:string){const account=getAccount();return account?`${key}:${account.id}`:key;}
 function readScoped<T>(key:string,fallback:T):T{const account=getAccount();const keyForAccount=scopedKey(key);const existing=localStorage.getItem(keyForAccount);if(existing)return read<T>(keyForAccount,fallback);if(account&&key===PROGRESS_KEY){const legacy=localStorage.getItem(PROGRESS_KEY);if(legacy){localStorage.setItem(keyForAccount,legacy);localStorage.removeItem(PROGRESS_KEY);return read<T>(keyForAccount,fallback);}}return fallback;}
-const defaultProgress: StudyProgress={points:0,streak:0,lastStudyDate:null,attempts:[],missedQuestionIds:[],revisionAttempts:[],lessonReadDate:null,lessonReadId:null,ratRetakeDate:null,completedLessonIds:[],lessonHistory:[],practiceSessions:[]};
+const defaultProgress: StudyProgress={points:0,streak:0,lastStudyDate:null,attempts:[],missedQuestionIds:[],revisionAttempts:[],lessonReadDate:null,lessonReadId:null,completedLessonIds:[],lessonHistory:[],practiceSessions:[]};
 function read<T>(key:string,fallback:T):T{try{const v=localStorage.getItem(key);return v?JSON.parse(v) as T:fallback;}catch{return fallback;}}
 export function getProgress():StudyProgress{const raw=readScoped<Partial<StudyProgress>>(PROGRESS_KEY,defaultProgress);return{
   points:raw.points??0,streak:raw.streak??0,lastStudyDate:raw.lastStudyDate??null,
   attempts:(raw.attempts??[]).map((a:any)=>({...a,type:a.type??"RAT",questionIds:a.questionIds??[],correctQuestionIds:a.correctQuestionIds??[]})),
   missedQuestionIds:raw.missedQuestionIds??[],revisionAttempts:raw.revisionAttempts??[],
-  lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,ratRetakeDate:raw.ratRetakeDate??null,
+  lessonReadDate:raw.lessonReadDate??null,lessonReadId:raw.lessonReadId??null,
   completedLessonIds:raw.completedLessonIds??[],lessonHistory:raw.lessonHistory??[],
   practiceSessions:(raw.practiceSessions??[]).map((s:any)=>({...s,questionIds:s.questionIds??[],correctQuestionIds:s.correctQuestionIds??[],incorrectQuestionIds:s.incorrectQuestionIds??[],timedOutQuestionIds:s.timedOutQuestionIds??[]})),
   activeRAT:raw.activeRAT??null,
