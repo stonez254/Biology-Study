@@ -2,19 +2,18 @@ import { useEffect, useMemo, useState } from "react";
 import { ASSESSMENT_CONFIG } from "../data/testConfig";
 import { setCloudUpdatedAt } from "../data/account";
 import { backendEnabled, submitAssessment } from "../data/api";
-import { questions, type Question } from "../data/questions";
+import { questions, type Question, getQuestionsForLesson } from "../data/questions";
 import type { CurriculumTrack } from "../data/curriculum";
-import { matchesCurriculum } from "../data/questionCurriculum";
 import { selectRATQuestions } from "../data/questionSelector";
 import { canUseRATRetakeToday, clearActiveRAT, consumeRATRetake, getActiveRAT, getProgress, hasCompletedRATToday, hasReadLessonToday, hydrateQuestions, recordRATAttempt, saveActiveRAT, type StudyProgress } from "../data/progress";
 type Props={curriculum:CurriculumTrack;onExit:()=>void;onProgress:(progress:StudyProgress)=>void;onLesson:()=>void};
 
 export default function RAT({curriculum,onExit,onProgress,onLesson}:Props){
  const config=ASSESSMENT_CONFIG.rat, progress=getProgress(), readToday=hasReadLessonToday(progress), completedToday=hasCompletedRATToday(progress);
- const lessonQuestions=questions.filter(q=>q.lessonId===progress.lessonReadId && matchesCurriculum(q,curriculum));
+ const lessonQuestions=progress.lessonReadId ? getQuestionsForLesson(progress.lessonReadId,curriculum) as Question[] : [];
  const recentAssessmentIds=progress.attempts.flatMap(a=>a.questionIds??[]);
  const saved=getActiveRAT(), restored=saved?hydrateQuestions(saved,questions):[];
- const [testQuestions,setTestQuestions]=useState<Question[]>(restored.length===config.questionCount && restored.every(q=>matchesCurriculum(q,curriculum))?restored:()=>selectRATQuestions(lessonQuestions,config.questionCount,recentAssessmentIds));
+ const [testQuestions,setTestQuestions]=useState<Question[]>(restored.length===config.questionCount && restored.every(q=>lessonQuestions.some(item=>item.id===q.id))?restored:()=>selectRATQuestions(lessonQuestions,config.questionCount,recentAssessmentIds));
  const [current,setCurrent]=useState(saved&&restored.length===config.questionCount?saved.current:0);
  const [answers,setAnswers]=useState<Record<string,number>>(saved&&restored.length===config.questionCount?saved.answers:{});
  const [secondsLeft,setSecondsLeft]=useState(saved&&restored.length===config.questionCount?saved.secondsLeft:config.durationSeconds);
