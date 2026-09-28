@@ -1,4 +1,5 @@
 import type { CurriculumTrack } from "./curriculum";
+import type { SchoolForm } from "./schoolForm";
 
 export type QuestionType = "concept" | "application" | "scenario" | "identification" | "calculation";
 
@@ -6,6 +7,7 @@ export type QuestionSeed = {
   id: string;
   lessonId: string;
   curriculum?: CurriculumTrack;
+  form?: SchoolForm;
   topic: string;
   subtopic?: string;
   questionType?: QuestionType;
