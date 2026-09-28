@@ -661,3 +661,7 @@ radial-gradient(circle at 50% 70%,rgba(57,255,20,.07),transparent 32%),#010607;c
 .leaderboard-points strong{font-size:17px;color:#57ff76}
 .leaderboard-retry{margin-top:10px}
 @media(max-width:600px){.leaderboard-row{grid-template-columns:40px minmax(0,1fr) auto;gap:8px;padding:10px}.leaderboard-student span{font-size:10px}}
+
+.selection-save-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid rgba(0,246,255,.22);border-radius:14px;background:rgba(3,18,21,.72);box-shadow:0 0 14px rgba(0,246,255,.06)}
+.selection-save-row>div{min-width:0;display:grid;gap:4px}.selection-save-row strong{color:#fff}.selection-save-row small{color:#8fb8b9;line-height:1.4}
+@media(max-width:520px){.selection-save-row{align-items:stretch;flex-direction:column}.selection-save-row .primary-button{width:100%}}
