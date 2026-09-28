@@ -1,4 +1,6 @@
 import { getQuestionCountForLesson, getQuestionsForLesson } from "./questionBank";
+import { HIGH_SCHOOL_LESSONS } from "./highSchoolLessons";
+import type { CurriculumTrack } from "./curriculum";
 
 export type LessonSection = {
   label: string;
@@ -17,6 +19,8 @@ export type Lesson = {
   reference: string;
   questionCount: number;
   bankFocus: string[];
+  curriculum?: CurriculumTrack;
+  form?: 1 | 2 | 3 | 4;
 };
 
 const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
@@ -169,17 +173,24 @@ const lessonDefinitions: Omit<Lesson, "questionCount">[] = [
 
 ];
 
-export const lessons: Lesson[] = lessonDefinitions.map(lesson => ({
+const highSchoolLessonDefinitions: Omit<Lesson, "questionCount">[] = HIGH_SCHOOL_LESSONS.map(item => ({
+  ...item,
+  curriculum: "high-school" as const,
+  form: item.form,
+}));
+
+export const lessons: Lesson[] = [...lessonDefinitions, ...highSchoolLessonDefinitions].map(lesson => ({
   ...lesson,
-  questionCount: getQuestionCountForLesson(lesson.id),
+  questionCount: getQuestionCountForLesson(lesson.id, lesson.curriculum ?? "all"),
 }));
 
 export const LESSON_IDS = lessons.map(lesson => lesson.id);
 export const ACTIVE_LESSONS = lessons.filter(lesson => lesson.questionCount >= 10);
+export const HIGH_SCHOOL_ACTIVE_LESSONS = lessons.filter(lesson => lesson.curriculum === "high-school");
 
 
-export function getLessonBankSummary(lessonId: string) {
-  const bank = getQuestionsForLesson(lessonId);
+export function getLessonBankSummary(lessonId: string, curriculum: CurriculumTrack = "all") {
+  const bank = getQuestionsForLesson(lessonId, curriculum);
   return {
     total: bank.length,
     easy: bank.filter(question => question.difficulty === "Easy").length,
