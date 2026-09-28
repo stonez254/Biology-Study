@@ -5,6 +5,7 @@ import { expandedQuestionSeeds } from "./questionSeedsExtended";
 import { expansion90QuestionSeeds } from "./questionSeedsExpansion90";
 import type { CurriculumTrack } from "./curriculum";
 import { matchesCurriculum } from "./questionCurriculum";
+import { getVirtualLessonQuestionsMatch } from "./highSchoolLessons";
 
 export type { QuestionSeed };
 
@@ -48,9 +49,10 @@ for (const question of questionBank) {
 export const QUESTION_BANK_SIZE = questionBank.length;
 
 export function getQuestionsForLesson(lessonId: string, curriculum: CurriculumTrack = "all"): QuestionSeed[] {
-  return questionBank.filter(question =>
-    question.lessonId === lessonId && matchesCurriculum(question, curriculum)
-  );
+  return questionBank.filter(question => {
+    const belongsToLesson = question.lessonId === lessonId || getVirtualLessonQuestionsMatch(lessonId, question);
+    return belongsToLesson && matchesCurriculum(question, curriculum);
+  });
 }
 
 export function getQuestionCountForLesson(lessonId: string, curriculum: CurriculumTrack = "all"): number {
