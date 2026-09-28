@@ -791,6 +791,18 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
       [req.user.id, sessionId],
     );
 
+    if (existing.rows[0] && existing.rows[0].assessment_type !== type) {
+      await client.query("ROLLBACK");
+      return res.status(409).json({ error: "Assessment session does not match its stored submission." });
+    }
+    if (existing.rows[0]?.question_ids) {
+      const storedQuestionIds = Array.isArray(existing.rows[0].question_ids) ? existing.rows[0].question_ids.map(String) : [];
+      if (storedQuestionIds.length && (storedQuestionIds.length !== questionIds.length || storedQuestionIds.some((id, index) => id !== questionIds[index]))) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Assessment questions do not match the issued session." });
+      }
+    }
+
     if (existing.rows[0]?.result) {
       const updated = await client.query("SELECT updated_at FROM study_progress WHERE user_id = $1", [req.user.id]);
       await client.query("COMMIT");
@@ -812,18 +824,6 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
       if (dailyRAT.rows.length) {
         await client.query("ROLLBACK");
         return res.status(409).json({ error: "Today's RAT has already been completed. You can take the next RAT tomorrow." });
-      }
-    }
-
-    if (existing.rows[0] && existing.rows[0].assessment_type !== type) {
-      await client.query("ROLLBACK");
-      return res.status(409).json({ error: "Assessment session does not match its stored submission." });
-    }
-    if (existing.rows[0]?.question_ids) {
-      const storedQuestionIds = Array.isArray(existing.rows[0].question_ids) ? existing.rows[0].question_ids.map(String) : [];
-      if (storedQuestionIds.length && (storedQuestionIds.length !== questionIds.length || storedQuestionIds.some((id, index) => id !== questionIds[index]))) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({ error: "Assessment questions do not match the issued session." });
       }
     }
 
