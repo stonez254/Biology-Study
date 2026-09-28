@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getProgress, type StudyProgress } from "../data/progress";
 import { questions } from "../data/questions";
 import { lessons } from "../data/lessons";
+import { fetchLeaderboard, type LeaderboardEntry } from "../data/api";
 
 type AnalyticsProps = { progress: StudyProgress; onRefresh: (progress: StudyProgress) => void };
 type Breakdown = { total: number; correct: number };
@@ -10,6 +11,26 @@ function pct(value: number) { return Math.round(value); }
 
 export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
   const [range, setRange] = useState<"all" | "30">("all");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardTotal, setLeaderboardTotal] = useState(0);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(true);
+  const [leaderboardError, setLeaderboardError] = useState("");
+
+  const loadLeaderboard = async () => {
+    setLeaderboardLoading(true);
+    setLeaderboardError("");
+    try {
+      const result = await fetchLeaderboard();
+      setLeaderboard(result.learners);
+      setLeaderboardTotal(result.totalLearners);
+    } catch (error) {
+      setLeaderboardError(error instanceof Error ? error.message : "Unable to load the leaderboard.");
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
+  useEffect(() => { void loadLeaderboard(); }, []);
 
   const data = useMemo(() => {
     const cutoff = Date.now() - 30 * 86400000;
@@ -166,6 +187,23 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     </section>
 
     {!hasBreakdown && data.attempts.length > 0 && <div className="analytics-note">Detailed breakdowns start with your new RAT/CAT attempts. Older attempts are still included in overall accuracy, but they were saved before per-question analytics was introduced.</div>}
+
+    <section className="panel analytics-panel leaderboard-panel">
+      <div className="panel-heading">
+        <div><span className="eyebrow">Community</span><h3>Learning Leaderboard</h3></div>
+        <span className="fact-tag">{leaderboardTotal} registered learner{leaderboardTotal === 1 ? "" : "s"}</span>
+      </div>
+      <p className="leaderboard-note">See how learners are progressing across Biology-Study. Only usernames and learning statistics are shown.</p>
+      {leaderboardLoading ? <Empty text="Loading the learning leaderboard..." /> :
+        leaderboardError ? <div className="analytics-empty">{leaderboardError}<button className="secondary-button leaderboard-retry" onClick={()=>void loadLeaderboard()}>Retry</button></div> :
+        leaderboard.length ? <div className="leaderboard-list">{leaderboard.map((learner, index) =>
+          <div className={"leaderboard-row" + (index < 3 ? " top-rank" : "")} key={learner.username}>
+            <div className="leaderboard-rank">{learner.rank === 1 ? "🥇" : learner.rank === 2 ? "🥈" : learner.rank === 3 ? "🥉" : String(learner.rank).padStart(2,"0")}</div>
+            <div className="leaderboard-student"><strong>@{learner.username}</strong><span>{learner.lessonsCompleted} lesson{learner.lessonsCompleted === 1 ? "" : "s"} completed • 🔥 {learner.streak} day{learner.streak === 1 ? "" : "s"} streak</span></div>
+            <div className="leaderboard-points"><strong>{learner.points}</strong><span>points</span></div>
+          </div>
+        )}</div> : <Empty text="No registered learners yet." />}
+    </section>
 
     <section className="analytics-grid">
       <div className="panel analytics-panel">
