@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { getLessonBankSummary, lessons } from "../data/lessons";
+import type { CurriculumTrack } from "../data/curriculum";
 import { getProgress, getTodaysLessonId, hasReadLessonToday, markLessonRead, type StudyProgress } from "../data/progress";
 
-type Props={onRead:(progress:StudyProgress)=>void;onExit:()=>void};
+type Props={curriculum:CurriculumTrack;onRead:(progress:StudyProgress)=>void;onExit:()=>void};
 
-export default function Lesson({onRead,onExit}:Props){
- const todayId=getTodaysLessonId();
+export default function Lesson({curriculum,onRead,onExit}:Props){
+ const todayId=getTodaysLessonId(curriculum);
  const progress=getProgress();
  const selected=lessons.find(l=>l.id===todayId)??lessons[0];
- const bankSummary=getLessonBankSummary(selected.id);
+ const bankSummary=getLessonBankSummary(selected.id,curriculum);
  const [confirmed,setConfirmed]=useState(hasReadLessonToday(progress,todayId));
  const [readPercent,setReadPercent]=useState(hasReadLessonToday(progress,todayId)?100:0);
  const lessonRef=useRef<HTMLElement|null>(null);
@@ -40,6 +41,7 @@ export default function Lesson({onRead,onExit}:Props){
 
  return <div className="content">
    <div className="lesson-header">
+     <div className="lesson-curriculum-badge"><span className="badge">{curriculum==="high-school" ? `FORM ${selected.form ?? "1–3"} • HIGH SCHOOL BIOLOGY` : curriculum.toUpperCase()}</span></div>
      <div>
        <span className="badge">TODAY'S LESSON • LESSON {selected.sequence}</span>
        <h2>{selected.title}</h2>
