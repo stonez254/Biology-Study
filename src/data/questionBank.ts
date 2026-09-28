@@ -3,6 +3,8 @@ import { deepQuestionSeeds } from "./questionSeedsDeep";
 import { foundationQuestionSeeds } from "./questionSeedsFoundations";
 import { expandedQuestionSeeds } from "./questionSeedsExtended";
 import { expansion90QuestionSeeds } from "./questionSeedsExpansion90";
+import type { CurriculumTrack } from "./curriculum";
+import { matchesCurriculum } from "./questionCurriculum";
 
 export type { QuestionSeed };
 
@@ -45,12 +47,14 @@ for (const question of questionBank) {
 
 export const QUESTION_BANK_SIZE = questionBank.length;
 
-export function getQuestionsForLesson(lessonId: string): QuestionSeed[] {
-  return questionBank.filter(question => question.lessonId === lessonId);
+export function getQuestionsForLesson(lessonId: string, curriculum: CurriculumTrack = "all"): QuestionSeed[] {
+  return questionBank.filter(question =>
+    question.lessonId === lessonId && matchesCurriculum(question, curriculum)
+  );
 }
 
-export function getQuestionCountForLesson(lessonId: string): number {
-  return getQuestionsForLesson(lessonId).length;
+export function getQuestionCountForLesson(lessonId: string, curriculum: CurriculumTrack = "all"): number {
+  return getQuestionsForLesson(lessonId, curriculum).length;
 }
 
 export const QUESTION_BANK_COUNTS = Object.fromEntries(
