@@ -94,8 +94,8 @@ export async function createQuestionBankAssessment(type: "RAT" | "CAT", count: 1
   });
 }
 
-export async function claimAssessmentSession(type: "RAT" | "CAT" | "REVISION", sessionId: string) {
-  return request<{ accepted: boolean; submittedAt: string | null }>("/api/assessment/claim", { method: "POST", body: JSON.stringify({ type, sessionId }) });
+export async function claimAssessmentSession(type: "RAT" | "CAT" | "REVISION", sessionId: string, questionIds: string[] = []) {
+  return request<{ accepted: boolean; submittedAt: string | null; sessionId: string; questionIds: string[] }>("/api/assessment/claim", { method: "POST", body: JSON.stringify({ type, sessionId, questionIds }) });
 }
 export type VerifiedAssessmentResult = {
   type: "RAT" | "CAT" | "REVISION";
