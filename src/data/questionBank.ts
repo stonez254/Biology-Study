@@ -3,13 +3,14 @@ import { deepQuestionSeeds } from "./questionSeedsDeep";
 import { foundationQuestionSeeds } from "./questionSeedsFoundations";
 import { expandedQuestionSeeds } from "./questionSeedsExtended";
 import { expansion90QuestionSeeds } from "./questionSeedsExpansion90";
+import { highSchoolQuestionSeeds } from "./questionSeedsHighSchool";
 import type { CurriculumTrack } from "./curriculum";
 import { matchesCurriculum } from "./questionCurriculum";
 import { getVirtualLessonQuestionsMatch } from "./highSchoolLessons";
 
 export type { QuestionSeed };
 
-export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds];
+export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds, ...highSchoolQuestionSeeds];
 
 const lessonIds = new Set([
   "hs-f1-introduction",
