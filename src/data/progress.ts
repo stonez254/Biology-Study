@@ -2,6 +2,7 @@ import type { Question } from "./questions";
 import { getAccount, syncProgressToServer } from "./account";
 import { ACTIVE_LESSONS, HIGH_SCHOOL_ACTIVE_LESSONS } from "./lessons";
 import { getCurriculumTrack, type CurriculumTrack } from "./curriculum";
+import { getSchoolForm, includesForm, type SchoolForm } from "./schoolForm";
 
 export type AssessmentType = "RAT" | "CAT" | "REVISION";
 export type PracticeSession = { id: string; completedAt: string; total: number; correct: number; accuracy: number; maxCombo: number; questionIds: string[]; correctQuestionIds: string[]; incorrectQuestionIds: string[]; timedOutQuestionIds: string[]; topic: string; difficulty: string; };
@@ -58,8 +59,10 @@ export function markLessonRead(lessonId:string):StudyProgress{
  saveProgress(next);return next;
 }
 export function hasReadLessonToday(progress=getProgress(),lessonId?:string){return progress.lessonReadDate===localDateKey() && (!lessonId || progress.lessonReadId===lessonId);}
-export function getTodaysLessonId(curriculum: CurriculumTrack = getCurriculumTrack()){
- const available=curriculum === "high-school" ? HIGH_SCHOOL_ACTIVE_LESSONS : ACTIVE_LESSONS.filter(lesson => curriculum === "all" || lesson.curriculum === curriculum || !lesson.curriculum);
+export function getTodaysLessonId(curriculum: CurriculumTrack = getCurriculumTrack(), schoolForm: SchoolForm = getSchoolForm()){
+ const available=curriculum === "high-school"
+   ? HIGH_SCHOOL_ACTIVE_LESSONS.filter(lesson => includesForm(schoolForm, lesson.form))
+   : ACTIVE_LESSONS.filter(lesson => curriculum === "all" || lesson.curriculum === curriculum || !lesson.curriculum);
  if(!available.length)return "cellular-energy";
  const index=Math.floor(Date.now()/86400000)%available.length;
  return available[index].id;
