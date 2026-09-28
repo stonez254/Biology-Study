@@ -230,42 +230,6 @@ async function auth(req, res, next) {
   }
 }
 
-app.post("/api/admin/reset-user-data", async (req, res) => {
-  const enabled = String(process.env.RESET_DATABASE_ENABLED || "").toLowerCase() === "true";
-  const configuredToken = String(process.env.RESET_DATABASE_TOKEN || "");
-  const suppliedToken = String(req.headers["x-reset-token"] || "");
-
-  if (!enabled || !configuredToken || suppliedToken.length === 0 || suppliedToken !== configuredToken) {
-    return res.status(404).json({ error: "Not found." });
-  }
-
-  const client = await pool.connect();
-  try {
-    await client.query("BEGIN");
-    await client.query(`
-      TRUNCATE TABLE
-        email_verification_codes,
-        assessment_states,
-        assessment_submissions,
-        study_progress,
-        verified_account_state,
-        users
-      RESTART IDENTITY CASCADE
-    `);
-    await client.query("COMMIT");
-    return res.json({
-      ok: true,
-      message: "All accounts and synced user data have been deleted. Question-bank content was preserved.",
-    });
-  } catch (error) {
-    await client.query("ROLLBACK");
-    console.error("reset user data", error);
-    return res.status(500).json({ error: "Database reset failed." });
-  } finally {
-    client.release();
-  }
-});
-
 app.get("/api/health", async (_req, res) => {
   try {
     await pool.query("SELECT 1");
