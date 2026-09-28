@@ -596,6 +596,36 @@ app.post("/api/question-bank/assessment", auth, async (req, res) => {
     const count = type === "RAT" ? 10 : 20;
     if (requestedCount !== count) return res.status(400).json({ error: "Invalid assessment question count." });
 
+    if (type === "CAT") {
+      const ratCycle = await pool.query(
+        `WITH last_cat AS (
+           SELECT COALESCE(MAX((submitted_at AT TIME ZONE 'Africa/Nairobi')::date), DATE '1900-01-01') AS cutoff
+           FROM assessment_submissions
+           WHERE user_id = $1 AND assessment_type = 'CAT' AND result IS NOT NULL
+         ),
+         rat_dates AS (
+           SELECT DISTINCT (submitted_at AT TIME ZONE 'Africa/Nairobi')::date AS rat_date
+           FROM assessment_submissions, last_cat
+           WHERE user_id = $1 AND assessment_type = 'RAT' AND result IS NOT NULL
+             AND (submitted_at AT TIME ZONE 'Africa/Nairobi')::date > last_cat.cutoff
+         )
+         SELECT rat_date
+         FROM rat_dates
+         WHERE rat_date < (NOW() AT TIME ZONE 'Africa/Nairobi')::date
+         ORDER BY rat_date DESC
+         LIMIT 3`,
+        [req.user.id],
+      );
+      const dates = ratCycle.rows.map(row => String(row.rat_date).slice(0, 10));
+      const consecutive = dates.length === 3
+        && dates[0] > dates[1] && dates[1] > dates[2]
+        && (new Date(dates[0]).getTime() - new Date(dates[1]).getTime()) === 86400000
+        && (new Date(dates[1]).getTime() - new Date(dates[2]).getTime()) === 86400000;
+      if (!consecutive) {
+        return res.status(409).json({ error: "CAT is locked. Complete one RAT on each of three consecutive days, then the CAT opens the following day." });
+      }
+    }
+
     const params = [source];
     const where = ["active = TRUE", "source = $1"];
     if (subject) {
@@ -677,21 +707,74 @@ app.get("/api/progress", auth, async (req, res) => {
 app.post("/api/assessment/claim", auth, async (req, res) => {
   const type = String(req.body?.type || "").toUpperCase();
   const sessionId = String(req.body?.sessionId || "");
+  const questionIds = Array.isArray(req.body?.questionIds) ? req.body.questionIds.map(value => String(value)) : [];
   if (!["RAT", "CAT", "REVISION"].includes(type)) {
     return res.status(400).json({ error: "Invalid assessment submission." });
   }
-  const parsedSession = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId);
-  if (!parsedSession) {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) {
     return res.status(400).json({ error: "Invalid assessment session." });
   }
-  const result = await pool.query(
-    `INSERT INTO assessment_submissions (user_id, session_id, assessment_type)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (user_id, session_id) DO NOTHING
-     RETURNING submitted_at`,
-    [req.user.id, sessionId, type],
-  );
-  return res.json({ accepted: Boolean(result.rows[0]), submittedAt: result.rows[0]?.submitted_at ?? null });
+  if (type === "RAT" && (questionIds.length !== 10 || new Set(questionIds).size !== 10)) {
+    return res.status(400).json({ error: "A RAT must contain exactly 10 unique questions." });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [req.user.id]);
+
+    if (type === "RAT") {
+      const completed = await client.query(
+        `SELECT session_id FROM assessment_submissions
+         WHERE user_id = $1 AND assessment_type = 'RAT' AND result IS NOT NULL
+           AND (submitted_at AT TIME ZONE 'Africa/Nairobi')::date = (NOW() AT TIME ZONE 'Africa/Nairobi')::date
+         LIMIT 1`,
+        [req.user.id],
+      );
+      if (completed.rows.length) {
+        await client.query("ROLLBACK");
+        return res.status(409).json({ error: "Today's RAT has already been completed. The next RAT is available tomorrow." });
+      }
+
+      const existing = await client.query(
+        `SELECT session_id, submitted_at, question_ids
+         FROM assessment_submissions
+         WHERE user_id = $1 AND assessment_type = 'RAT'
+           AND (submitted_at AT TIME ZONE 'Africa/Nairobi')::date = (NOW() AT TIME ZONE 'Africa/Nairobi')::date
+         ORDER BY submitted_at DESC LIMIT 1
+         FOR UPDATE`,
+        [req.user.id],
+      );
+
+      if (existing.rows[0]) {
+        const storedIds = Array.isArray(existing.rows[0].question_ids) ? existing.rows[0].question_ids.map(String) : [];
+        await client.query("COMMIT");
+        return res.json({
+          accepted: true,
+          submittedAt: existing.rows[0].submitted_at,
+          sessionId: existing.rows[0].session_id,
+          questionIds: storedIds,
+        });
+      }
+    }
+
+    await client.query(
+      `INSERT INTO assessment_submissions (user_id, session_id, assessment_type, question_ids)
+       VALUES ($1, $2, $3, $4::jsonb)
+       ON CONFLICT (user_id, session_id) DO UPDATE
+       SET assessment_type = EXCLUDED.assessment_type,
+           question_ids = COALESCE(assessment_submissions.question_ids, EXCLUDED.question_ids)`,
+      [req.user.id, sessionId, type, JSON.stringify(questionIds)],
+    );
+    await client.query("COMMIT");
+    return res.json({ accepted: true, submittedAt: new Date().toISOString(), sessionId, questionIds });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("assessment claim", error);
+    return res.status(500).json({ error: "Unable to secure the assessment session." });
+  } finally {
+    client.release();
+  }
 });
 
 app.post("/api/assessment/submit", auth, async (req, res) => {
