@@ -2,46 +2,20 @@ import type { CurriculumTrack } from "./curriculum";
 import type { QuestionSeed } from "./questionSeeds";
 
 /**
- * Safe first-pass curriculum mapping.
+ * Strict curriculum separation.
  *
- * Explicit question.curriculum always wins. Legacy questions without metadata
- * are classified by lesson/topic so the existing bank remains intact while the
- * High School track becomes the default learning direction.
+ * Questions without an explicit curriculum tag are treated as University
+ * content. This is deliberate: an ambiguous question must never leak into
+ * the High School track just because a keyword happens to match.
  *
- * This is intentionally conservative. "all" never removes content, and the
- * mapping can be refined as the 8,500-question bank is audited.
+ * High School questions must be explicitly tagged with:
+ *   curriculum: "high-school"
+ *
+ * University and Medical questions should likewise carry their explicit tag
+ * as the bank is audited.
  */
-const HIGH_SCHOOL_LESSONS = new Set([
-  "biology-foundations",
-  "chemistry-of-life",
-  "cellular-energy",
-  "cell-membrane-transport",
-  "cell-cycle-mitosis",
-  "genetics-foundations",
-  "photosynthesis-plants",
-  "microbiology-viruses",
-  "evolution-population-genetics",
-  "ecology-ecosystems",
-]);
-
-const HIGH_SCHOOL_TOPIC_HINTS = [
-  "biology foundations", "classification", "nutrition", "plant biology", "gaseous exchange",
-  "respiration", "transport", "reproduction", "growth", "coordination", "ecology", "environment",
-];
-
-const MEDICAL_LESSONS = new Set([
-  "histology-basics",
-  "blood-immune-cells",
-  "nervous-system-basics",
-  "human-regulation",
-]);
-
 export function getQuestionCurriculum(question: QuestionSeed): Exclude<CurriculumTrack, "all"> {
   if (question.curriculum && question.curriculum !== "all") return question.curriculum;
-  if (HIGH_SCHOOL_LESSONS.has(question.lessonId)) return "high-school";
-  if (MEDICAL_LESSONS.has(question.lessonId)) return "medical";
-  const haystack = [question.topic, question.subtopic ?? "", question.prompt].join(" ").toLowerCase();
-  if (HIGH_SCHOOL_TOPIC_HINTS.some(hint => haystack.includes(hint))) return "high-school";
   return "university";
 }
 
