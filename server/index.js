@@ -466,6 +466,65 @@ app.get("/health", async (_req, res) => {
   }
 });
 
+app.post("/api/admin/set-user-points", async (req, res) => {
+  const enabled = String(process.env.ADMIN_POINTS_ENABLED || "").toLowerCase() === "true";
+  const configuredToken = String(process.env.ADMIN_POINTS_TOKEN || "");
+  const suppliedToken = String(req.headers["x-admin-token"] || "");
+
+  if (!enabled || !configuredToken || !suppliedToken || suppliedToken !== configuredToken) {
+    return res.status(404).json({ error: "Not found." });
+  }
+
+  const username = normalizeUsername(req.body?.username);
+  const points = Number(req.body?.points);
+
+  if (!username || !Number.isInteger(points) || points < 0 || points > 1000000) {
+    return res.status(400).json({ error: "Provide a valid username and points value." });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const user = await client.query("SELECT id, username FROM users WHERE username = $1 LIMIT 1", [username]);
+
+    if (!user.rows[0]) {
+      await client.query("ROLLBACK");
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const userId = user.rows[0].id;
+    await client.query(
+      "INSERT INTO verified_account_state (user_id, points, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (user_id) DO UPDATE SET points = EXCLUDED.points, updated_at = NOW()",
+      [userId, points],
+    );
+
+    const storedProgress = await client.query(
+      "SELECT progress FROM study_progress WHERE user_id = $1 FOR UPDATE",
+      [userId],
+    );
+    const baseProgress = storedProgress.rows[0]?.progress && typeof storedProgress.rows[0].progress === "object"
+      ? storedProgress.rows[0].progress
+      : {};
+    const mergedProgress = { ...baseProgress, points };
+
+    await client.query(
+      `INSERT INTO study_progress (user_id, progress, updated_at)
+       VALUES ($1, $2::jsonb, NOW())
+       ON CONFLICT (user_id) DO UPDATE SET progress = EXCLUDED.progress, updated_at = NOW()`,
+      [userId, JSON.stringify(mergedProgress)],
+    );
+
+    await client.query("COMMIT");
+    return res.json({ ok: true, username: user.rows[0].username, points });
+  } catch (error) {
+    await client.query("ROLLBACK");
+    console.error("set user points", error);
+    return res.status(500).json({ error: "Unable to update user points." });
+  } finally {
+    client.release();
+  }
+});
+
 app.get("/api/leaderboard", async (_req, res) => {
   try {
     const result = await pool.query(
