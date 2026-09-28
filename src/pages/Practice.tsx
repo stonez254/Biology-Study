@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { questions, type Question } from "../data/questions";
+import type { CurriculumTrack } from "../data/curriculum";
+import { matchesCurriculum } from "../data/questionCurriculum";
 import { selectPracticeQuestions } from "../data/questionSelector";
 import { getProgress, recordPracticeSession, type StudyProgress } from "../data/progress";
 
-type Props = { onExit: () => void; onProgress?: (progress: StudyProgress) => void };
+type Props = { curriculum: CurriculumTrack; onExit: () => void; onProgress?: (progress: StudyProgress) => void };
 
 const SESSION_SIZES = [5, 10, 20] as const;
 const PRACTICE_MODES = ["Adaptive", "Weak Areas", "Mixed", "Difficulty Focus", "Topic Focus"] as const;
@@ -25,8 +27,9 @@ function rememberQuestionIds(ids: string[]) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(next));
 }
 
-export default function Practice({ onExit, onProgress }: Props) {
-  const topics = useMemo(() => Array.from(new Set(questions.map(q => q.topic))).sort(), []);
+export default function Practice({ curriculum, onExit, onProgress }: Props) {
+  const curriculumQuestions = useMemo(() => questions.filter(q => matchesCurriculum(q, curriculum)), [curriculum]);
+  const topics = useMemo(() => Array.from(new Set(curriculumQuestions.map(q => q.topic))).sort(), [curriculumQuestions]);
   const difficulties = ["All", "Easy", "Medium", "Hard"] as const;
   const [mode, setMode] = useState<PracticeMode>("Adaptive");
   const [topic, setTopic] = useState("All");
@@ -59,10 +62,10 @@ export default function Practice({ onExit, onProgress }: Props) {
     return () => document.removeEventListener("fullscreenchange", syncFullscreen);
   }, []);
 
-  const pool = useMemo(() => questions.filter(q =>
+  const pool = useMemo(() => curriculumQuestions.filter(q =>
     (topic === "All" || q.topic === topic) &&
     (difficulty === "All" || q.difficulty === difficulty)
-  ), [topic, difficulty]);
+  ), [curriculumQuestions, topic, difficulty]);
 
   const start = (modeOverride: PracticeMode = mode) => {
     const recent = new Set(getRecentIds());
@@ -76,7 +79,7 @@ export default function Practice({ onExit, onProgress }: Props) {
     for (const practice of progress.practiceSessions ?? []) {
       for (const id of practice.incorrectQuestionIds ?? []) {
         priorityScores.set(id, (priorityScores.get(id) ?? 0) + 6);
-        const question = questions.find(q => q.id === id);
+        const question = curriculumQuestions.find(q => q.id === id);
         if (!question) continue;
         lessonFailures.set(question.lessonId, (lessonFailures.get(question.lessonId) ?? 0) + 1);
         const subtopic = question.subtopic ?? question.topic;
