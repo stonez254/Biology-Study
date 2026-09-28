@@ -33,6 +33,23 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
 export function backendEnabled() { return enabled(); }
 
+export type LeaderboardEntry = {
+  rank: number;
+  username: string;
+  points: number;
+  streak: number;
+  lessonsCompleted: number;
+};
+
+export async function fetchLeaderboard() {
+  const response = await fetch(`${API_URL}/api/leaderboard`);
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
+  return body as { learners: LeaderboardEntry[]; totalLearners: number };
+}
+
+
+
 export async function registerRemote(studentName: string, email: string, password: string, username?: string) {
   return request<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify({ studentName, email, username, password }) });
 }
