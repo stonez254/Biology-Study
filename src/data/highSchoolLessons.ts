@@ -1,6 +1,6 @@
 import type { CurriculumTrack } from "./curriculum";
 
-export type SchoolForm = 1 | 2 | 3;
+export type SchoolForm = 1 | 2 | 3 | 4;
 
 export type SchoolLessonDefinition = {
   id: string;
