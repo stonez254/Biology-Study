@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { questions, type Question } from "../data/questions";
 import type { CurriculumTrack } from "../data/curriculum";
+import { getSchoolForm, includesForm, type SchoolForm } from "../data/schoolForm";
 import { matchesCurriculum } from "../data/questionCurriculum";
 import { selectPracticeQuestions } from "../data/questionSelector";
 import { getProgress, recordPracticeSession, type StudyProgress } from "../data/progress";
 
-type Props = { curriculum: CurriculumTrack; onExit: () => void; onProgress?: (progress: StudyProgress) => void };
+type Props = { curriculum: CurriculumTrack; schoolForm: SchoolForm; onExit: () => void; onProgress?: (progress: StudyProgress) => void };
 
 const SESSION_SIZES = [5, 10, 20] as const;
 const PRACTICE_MODES = ["Adaptive", "Weak Areas", "Mixed", "Difficulty Focus", "Topic Focus"] as const;
@@ -27,8 +28,8 @@ function rememberQuestionIds(ids: string[]) {
   localStorage.setItem(RECENT_KEY, JSON.stringify(next));
 }
 
-export default function Practice({ curriculum, onExit, onProgress }: Props) {
-  const curriculumQuestions = useMemo(() => questions.filter(q => matchesCurriculum(q, curriculum)), [curriculum]);
+export default function Practice({ curriculum, schoolForm, onExit, onProgress }: Props) {
+  const curriculumQuestions = useMemo(() => questions.filter(q => matchesCurriculum(q, curriculum) && (curriculum !== "high-school" || (q.form != null ? q.form <= schoolForm : false))), [curriculum, schoolForm]);
   const topics = useMemo(() => Array.from(new Set(curriculumQuestions.map(q => q.topic))).sort(), [curriculumQuestions]);
   const difficulties = ["All", "Easy", "Medium", "Hard"] as const;
   const [mode, setMode] = useState<PracticeMode>("Adaptive");
