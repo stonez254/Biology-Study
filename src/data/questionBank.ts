@@ -50,7 +50,16 @@ export const QUESTION_BANK_SIZE = questionBank.length;
 
 export function getQuestionsForLesson(lessonId: string, curriculum: CurriculumTrack = "all"): QuestionSeed[] {
   return questionBank.filter(question => {
-    const belongsToLesson = question.lessonId === lessonId || getVirtualLessonQuestionsMatch(lessonId, question);
+    const directLessonMatch = question.lessonId === lessonId;
+
+    // High School lessons use only explicitly tagged High School questions.
+    // No university/medical question is allowed to enter through keyword matching.
+    const virtualHighSchoolMatch =
+      curriculum === "high-school" &&
+      question.curriculum === "high-school" &&
+      getVirtualLessonQuestionsMatch(lessonId, question);
+
+    const belongsToLesson = directLessonMatch || virtualHighSchoolMatch;
     return belongsToLesson && matchesCurriculum(question, curriculum);
   });
 }
