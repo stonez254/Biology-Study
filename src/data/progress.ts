@@ -68,8 +68,6 @@ export function getTodaysLessonId(curriculum: CurriculumTrack = getCurriculumTra
  return available[index].id;
 }
 export function hasCompletedRATToday(progress=getProgress()){const today=localDateKey();return progress.attempts.some(a=>a.type==="RAT"&&localDateKey(new Date(a.completedAt))===today);}
-export function canUseRATRetakeToday(progress=getProgress()){return hasCompletedRATToday(progress)&&progress.ratRetakeDate!==localDateKey();}
-export function consumeRATRetake():StudyProgress{const progress=getProgress();const next={...progress,ratRetakeDate:localDateKey()};saveProgress(next);return next;}
 
 export type CATStatus = {
   eligible:boolean;
