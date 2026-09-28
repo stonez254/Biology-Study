@@ -179,7 +179,60 @@ export const HIGH_SCHOOL_LESSONS: SchoolLessonDefinition[] = [
       {label:"02 • Feeding relationships",title:"Food chains and webs",body:"Energy enters ecosystems mainly through producers and passes through consumers along feeding relationships.",highYield:"Energy flows through ecosystems while materials are recycled."},
       {label:"03 • Population",title:"What limits populations?",body:"Population size is affected by factors including food, water, space, predation, disease and competition.",highYield:"Limiting factors control population growth."},
       {label:"04 • Quick check",title:"Conservation",body:"Explain how human activities can affect habitats and biodiversity and identify practical conservation approaches.",highYield:"Trace environmental impacts through the ecosystem."}
-    ],["Ecology","Evolution"],["ecology","ecosystem","population","community","food chain","food web","conservation","biodiversity"],["Food chains","Population","Conservation","Biodiversity"]),
+    ],["Ecology","Evolution"],["ecology","ecosystem","population","community","food chain","food web","conservation","biodiversity"],["Food chains","Population","Conservation","Biodiversity"]),,
+
+  lesson("hs-f4-genetics",13,4,"Genetics and Inheritance","Form 4 • Genetics",
+    ["Explain genes, alleles, chromosomes and inheritance.","Use simple genetic crosses to predict offspring ratios.","Explain variation and mutation."],
+    [
+      {label:"01 • Genes",title:"Genes and alleles",body:"Genes are units of hereditary information located on chromosomes. Different forms of a gene are called alleles.",highYield:"Gene = hereditary unit; allele = alternative form."},
+      {label:"02 • Chromosomes",title:"Genetic material",body:"Chromosomes contain DNA and carry genes. They are copied and distributed during cell division.",highYield:"Chromosomes carry genes."},
+      {label:"03 • Genotype",title:"Genotype and phenotype",body:"Genotype describes genetic constitution while phenotype describes observable characteristics resulting from genotype and environmental influences.",highYield:"Phenotype can reflect genes and environment."},
+      {label:"04 • Dominance",title:"Dominant and recessive alleles",body:"In a simple Mendelian model, a dominant allele is expressed in a heterozygote while a recessive allele is expressed when no dominant allele is present.",highYield:"Dominant does not mean more common or better."},
+      {label:"05 • Crosses",title:"Punnett squares",body:"Punnett squares combine parental gametes to predict possible offspring genotypes and phenotypes. Predicted ratios are probabilities, not guarantees for every family.",highYield:"Separate genotype ratio from phenotype ratio."},
+      {label:"06 • Variation",title:"Why individuals differ",body:"Variation can arise from genetic differences, environmental effects or both. Mutation changes genetic material and can introduce new alleles.",highYield:"Heritable variation can be passed to offspring."},
+      {label:"07 • Sex-linked traits",title:"Inheritance and sex chromosomes",body:"Some genes occur on sex chromosomes, producing inheritance patterns that differ between males and females.",highYield:"Draw the sex chromosomes before completing a cross."},
+      {label:"08 • Applications",title:"Genetics in practice",body:"Genetic principles are used in selective breeding, diagnosis, research and biotechnology. Interpret claims using the evidence provided.",highYield:"Apply genetic principles to the stated evidence."}
+    ],["Genetics","Cell Biology","Evolution"],["gene","allele","chromosome","DNA","genotype","phenotype","dominant","recessive","mutation","inheritance","variation"],["Genes and alleles","Genotype and phenotype","Genetic crosses","Variation","Sex-linked inheritance"]),
+
+  lesson("hs-f4-evolution",14,4,"Evolution and Adaptation","Form 4 • Evolution",
+    ["Explain variation and natural selection.","Describe adaptation and evidence for evolutionary change.","Distinguish natural selection from individual acclimatization."],
+    [
+      {label:"01 • Variation",title:"Differences in populations",body:"Individuals vary. Some differences are inherited while others are strongly influenced by environmental conditions.",highYield:"Only heritable variation can be directly passed to offspring."},
+      {label:"02 • Selection",title:"Natural selection",body:"When inherited differences affect survival or reproduction, individuals with advantageous traits may leave more offspring and those traits can become more common over generations.",highYield:"Selection changes populations across generations."},
+      {label:"03 • Adaptation",title:"Fit to an environment",body:"An adaptation is an inherited feature that improves survival or reproductive success in a particular environment. Adaptations may be structural, physiological or behavioural.",highYield:"Adaptation is not a deliberate individual choice."},
+      {label:"04 • Evidence",title:"Evidence for evolution",body:"Evidence includes fossils, comparative anatomy, embryology, biogeography and molecular similarities.",highYield:"Use the evidence type named in the question."},
+      {label:"05 • Resistance",title:"Selection in populations",body:"Selective pressures can favour resistant variants. Over generations, resistant forms may increase in frequency when they survive and reproduce more successfully.",highYield:"Selection favours existing heritable variation."},
+      {label:"06 • Speciation",title:"Formation of species",body:"Geographical separation and accumulated genetic differences can contribute to reproductive isolation and the formation of distinct species.",highYield:"Reproductive isolation is central to speciation."},
+      {label:"07 • Relatedness",title:"Evolution and classification",body:"Morphological and molecular evidence can be used to infer evolutionary relationships. Closely related organisms generally share more recent common ancestry.",highYield:"Classification can reflect evolutionary relationships."},
+      {label:"08 • Review",title:"Evolution versus acclimatization",body:"An individual may adjust during its lifetime, but evolutionary adaptation concerns inherited changes in populations across generations.",highYield:"Do not confuse lifetime adjustment with evolution."}
+    ],["Evolution","Genetics"],["evolution","natural selection","adaptation","variation","mutation","speciation","fossil","resistance","selection"],["Variation","Natural selection","Adaptation","Evidence","Speciation"]),
+
+  lesson("hs-f4-ecology",15,4,"Ecology, Population and Conservation","Form 4 • Ecology",
+    ["Analyse population changes and ecological relationships.","Explain nutrient cycling and energy transfer.","Evaluate conservation and human impacts on ecosystems."],
+    [
+      {label:"01 • Population",title:"Population dynamics",body:"Population size changes through births, deaths, immigration and emigration. Population density and distribution can be studied using sampling methods.",highYield:"Know the four processes that directly change population size."},
+      {label:"02 • Sampling",title:"Quadrats and transects",body:"Quadrats can estimate abundance or distribution of plants and other relatively immobile organisms. Transects reveal how organisms change along an environmental gradient.",highYield:"Choose a sampling method suited to the organism and question."},
+      {label:"03 • Interactions",title:"Competition and predation",body:"Competition occurs when organisms require the same limited resource. Predation involves one organism obtaining food from another.",highYield:"Identify the interaction and limiting resource."},
+      {label:"04 • Energy",title:"Trophic levels",body:"Energy enters most ecosystems through photosynthesis and is transferred between trophic levels. Respiration and heat losses mean less usable energy reaches higher levels.",highYield:"Energy transfer between trophic levels is inefficient."},
+      {label:"05 • Carbon",title:"Carbon cycling",body:"Carbon moves among the atmosphere, organisms, soil, oceans and rocks. Photosynthesis removes carbon dioxide while respiration and decomposition return carbon dioxide.",highYield:"Connect each process to carbon movement."},
+      {label:"06 • Nitrogen",title:"Nitrogen cycling",body:"Nitrogen is essential for proteins and nucleic acids. Microorganisms drive important transformations between nitrogen-containing compounds.",highYield:"Link nitrogen-cycle processes to the compounds involved."},
+      {label:"07 • Human impact",title:"Changing ecosystems",body:"Agriculture, urbanization, pollution, overharvesting and habitat destruction can alter ecosystems and biodiversity.",highYield:"State the pressure, mechanism and ecological consequence."},
+      {label:"08 • Conservation",title:"Sustainable management",body:"Conservation includes habitat protection, restoration, sustainable harvesting and control of invasive species.",highYield:"Conservation should address the cause of biodiversity loss."}
+    ],["Ecology","Evolution"],["population","sampling","quadrat","transect","competition","predation","energy flow","carbon cycle","nitrogen cycle","conservation","biodiversity"],["Population dynamics","Sampling","Energy flow","Nutrient cycles","Human impact","Conservation"]),
+
+  lesson("hs-f4-applied-biology",16,4,"Applied Biology and Biotechnology","Form 4 • Applied Biology",
+    ["Connect biology to agriculture, health and biotechnology.","Explain selected applications of microorganisms and enzymes.","Apply biological principles to practical problems."],
+    [
+      {label:"01 • Microorganisms",title:"Useful and harmful microbes",body:"Microorganisms can cause disease but are also useful in food production, decomposition, medicine and biotechnology.",highYield:"A microorganism can be harmful in one context and useful in another."},
+      {label:"02 • Fermentation",title:"Microbial biotechnology",body:"Microorganisms can convert substrates into useful products under controlled conditions. Yeast fermentation is important in bread making.",highYield:"Know the organism, substrate, conditions and product."},
+      {label:"03 • Enzymes",title:"Industrial enzymes",body:"Enzymes catalyse reactions under relatively mild conditions and can be selected for specific substrates. Temperature and pH affect activity.",highYield:"Enzyme conditions affect activity and stability."},
+      {label:"04 • Selective breeding",title:"Improving organisms",body:"Selective breeding chooses parents with desired characteristics and breeds them over generations to increase useful traits.",highYield:"Selective breeding depends on heritable variation."},
+      {label:"05 • Tissue culture",title:"Rapid plant propagation",body:"Plant tissue culture can produce many plants from small pieces of tissue under controlled sterile conditions.",highYield:"Sterility helps prevent contamination."},
+      {label:"06 • Genetic technology",title:"Using genetic information",body:"Biotechnology can analyse or modify genetic material for research, diagnosis and production. Applications should be evaluated using evidence and safety principles.",highYield:"Separate mechanism from ethical or policy questions."},
+      {label:"07 • Disease control",title:"Biology in public health",body:"Understanding pathogens and transmission supports prevention through hygiene, vaccination where appropriate, vector control and safe food and water practices.",highYield:"Think in terms of transmission, prevention and treatment."},
+      {label:"08 • Review",title:"Applied Biology thinking",body:"For an application question, identify the organism or process, desired outcome, conditions required and possible limitations or risks.",highYield:"Application questions reward mechanism-based explanations."}
+    ],["Applied Biology","Microbiology","Biochemistry"],["biotechnology","microorganism","fermentation","enzyme","selective breeding","tissue culture","pathogen","vaccination","genetic technology"],["Microorganisms","Fermentation","Enzymes","Selective breeding","Tissue culture","Biotechnology"])
+
 ];
 
 export function getHighSchoolLesson(id: string) {
