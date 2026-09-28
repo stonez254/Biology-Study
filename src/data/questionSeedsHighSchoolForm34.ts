@@ -1,6 +1,6 @@
 import type { QuestionSeed } from "./questionSeeds";
 
-type Row=[string,string,string[],number,string,string,string];
+type Row=[string,string,[string,string,string],number,string,string];
 const make=(form:3|4,lessonId:string,topic:string,rows:Row[]):QuestionSeed[]=>rows.map(([id,prompt,options,answer,subtopic,type])=>({id,lessonId,curriculum:"high-school",form,topic,subtopic,questionType:type as QuestionSeed["questionType"],difficulty:answer===2?"Hard":answer===1?"Medium":"Easy",prompt,options,answer,explanation:options[answer]+".",reference:"Kenyan secondary-school Biology study scope"}));
 
 export const highSchoolForm34QuestionSeeds: QuestionSeed[]=[
