@@ -12,6 +12,18 @@ export type { QuestionSeed };
 export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds];
 
 const lessonIds = new Set([
+  "hs-f1-introduction",
+  "hs-f1-cell",
+  "hs-f1-classification",
+  "hs-f1-nutrition",
+  "hs-f2-gaseous-exchange",
+  "hs-f2-respiration",
+  "hs-f2-transport-plants",
+  "hs-f2-transport-animals",
+  "hs-f3-reproduction",
+  "hs-f3-growth",
+  "hs-f3-coordination",
+  "hs-f3-ecology",
   "cellular-energy",
   "human-tissues",
   "human-regulation",
