@@ -380,13 +380,7 @@ export const QUESTION_ANSWER_KEY = {
   "exp90-095": 1,
   "exp90-096": 2,
   "exp90-097": 1,
-  "exp90-098": 0
-};
-
-export function getAnswer(questionId) {
-  return QUESTION_ANSWER_KEY[questionId];
-}
-
+  "exp90-098": 0,
   "hs-f1-intro-01": 0,
   "hs-f1-intro-02": 1,
   "hs-f1-intro-03": 1,
@@ -508,3 +502,5 @@ export function getAnswer(questionId) {
   "hs-f3-eco-09": 0,
   "hs-f3-eco-10": 0,
 };
+
+export function getAnswer(questionId)undefined
