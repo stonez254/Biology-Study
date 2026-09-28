@@ -503,4 +503,6 @@ export const QUESTION_ANSWER_KEY = {
   "hs-f3-eco-10": 0,
 };
 
-export function getAnswer(questionId)undefined
+export function getAnswer(questionId) {
+  return QUESTION_ANSWER_KEY[questionId];
+}
