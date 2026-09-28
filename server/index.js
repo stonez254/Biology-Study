@@ -855,29 +855,3 @@ app.put("/api/progress", auth, async (req, res) => {
 });
 
 app.listen(port, () => console.log(`Biology-Study API listening on port ${port}`));
-
-           THEN (sp.progress->>'streak')::integer
-           ELSE 0
-         END AS streak,
-         CASE
-           WHEN jsonb_typeof(sp.progress->'completedLessonIds') = 'array'
-           THEN jsonb_array_length(sp.progress->'completedLessonIds')
-           ELSE 0
-         END AS lessons_completed
-       FROM users u
-       LEFT JOIN verified_account_state vas ON vas.user_id = u.id
-       LEFT JOIN study_progress sp ON sp.user_id = u.id
-       ORDER BY points DESC, streak DESC, lessons_completed DESC, u.username ASC
-       LIMIT 500`,
-    );
-    return res.json({
-      learners: result.rows.map((row, index) => ({
-        rank: index + 1,
-        username: row.username,
-        points: row.points,
-        streak: row.streak,
-        lessonsCompleted: row.lessons_completed,
-      })),
-      totalLearners: result.rows.length,
-    });
- 
