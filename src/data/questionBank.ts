@@ -6,13 +6,14 @@ import { expansion90QuestionSeeds } from "./questionSeedsExpansion90";
 import { highSchoolQuestionSeeds } from "./questionSeedsHighSchool";
 import { highSchoolForm1ExpansionSeeds, highSchoolForm1DepthSeeds } from "./questionSeedsHighSchoolForm1";
 import { highSchoolForm2QuestionSeeds } from "./questionSeedsHighSchoolForm2";
+import { highSchoolForm34QuestionSeeds } from "./questionSeedsHighSchoolForm34";
 import type { CurriculumTrack } from "./curriculum";
 import { matchesCurriculum } from "./questionCurriculum";
 import { getVirtualLessonQuestionsMatch } from "./highSchoolLessons";
 
 export type { QuestionSeed };
 
-export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds, ...highSchoolQuestionSeeds, ...highSchoolForm1ExpansionSeeds, ...highSchoolForm1DepthSeeds, ...highSchoolForm2QuestionSeeds];
+export const questionBank: QuestionSeed[] = [...questionSeeds, ...expandedQuestionSeeds, ...deepQuestionSeeds, ...foundationQuestionSeeds, ...expansion90QuestionSeeds, ...highSchoolQuestionSeeds, ...highSchoolForm1ExpansionSeeds, ...highSchoolForm1DepthSeeds, ...highSchoolForm2QuestionSeeds, ...highSchoolForm34QuestionSeeds];
 
 const lessonIds = new Set([
   "hs-f1-introduction",
