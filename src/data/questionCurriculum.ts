@@ -24,6 +24,11 @@ const HIGH_SCHOOL_LESSONS = new Set([
   "ecology-ecosystems",
 ]);
 
+const HIGH_SCHOOL_TOPIC_HINTS = [
+  "biology foundations", "classification", "nutrition", "plant biology", "gaseous exchange",
+  "respiration", "transport", "reproduction", "growth", "coordination", "ecology", "environment",
+];
+
 const MEDICAL_LESSONS = new Set([
   "histology-basics",
   "blood-immune-cells",
@@ -35,6 +40,8 @@ export function getQuestionCurriculum(question: QuestionSeed): Exclude<Curriculu
   if (question.curriculum && question.curriculum !== "all") return question.curriculum;
   if (HIGH_SCHOOL_LESSONS.has(question.lessonId)) return "high-school";
   if (MEDICAL_LESSONS.has(question.lessonId)) return "medical";
+  const haystack = [question.topic, question.subtopic ?? "", question.prompt].join(" ").toLowerCase();
+  if (HIGH_SCHOOL_TOPIC_HINTS.some(hint => haystack.includes(hint))) return "high-school";
   return "university";
 }
 
