@@ -645,3 +645,17 @@ radial-gradient(circle at 50% 70%,rgba(57,255,20,.07),transparent 32%),#010607;c
   .onboarding-card{max-height:calc(100vh - 20px);padding:18px;gap:8px}
   .onboarding-card h2{font-size:23px}
 }
+
+.leaderboard-panel{grid-column:1/-1}
+.leaderboard-note{margin:0 0 14px;color:#91b9ba;line-height:1.5}
+.leaderboard-list{display:grid;gap:8px}
+.leaderboard-row{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:12px;padding:11px 13px;border:1px solid rgba(0,246,255,.14);border-radius:12px;background:rgba(3,18,21,.62)}
+.leaderboard-row.top-rank{border-color:rgba(57,255,20,.32);box-shadow:0 0 12px rgba(57,255,20,.08)}
+.leaderboard-rank{font-weight:900;text-align:center;font-size:16px}
+.leaderboard-student{min-width:0;display:grid;gap:3px}
+.leaderboard-student strong{color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.leaderboard-student span,.leaderboard-points span{font-size:11px;color:#91b9ba}
+.leaderboard-points{text-align:right;display:grid;gap:2px}
+.leaderboard-points strong{font-size:17px;color:#57ff76}
+.leaderboard-retry{margin-top:10px}
+@media(max-width:600px){.leaderboard-row{grid-template-columns:40px minmax(0,1fr) auto;gap:8px;padding:10px}.leaderboard-student span{font-size:10px}}
