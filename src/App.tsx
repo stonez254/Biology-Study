@@ -7,7 +7,8 @@ import Lesson from "./pages/Lesson";
 import Analytics from "./pages/Analytics";
 import { getProgress, hasCompletedRATToday, hasReadLessonToday, replaceProgress, type StudyProgress } from "./data/progress";
 import { getDailyFact } from "./data/commonKnowledge";
-import { getCurriculumTrack, setCurriculumTrack, type CurriculumTrack } from "./data/curriculum";\nimport { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, getSavedAccounts, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, saveAccountEmail, syncProgressToServer, verifyLocalPassword, verifyPendingEmail, resendPendingEmail, requestAccessReset, completeAccessReset, startAccountEmailVerification, finishAccountEmailVerification, type LocalAccount } from "./data/account";
+import { getCurriculumTrack, setCurriculumTrack, type CurriculumTrack } from "./data/curriculum";
+import { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, getSavedAccounts, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, saveAccountEmail, syncProgressToServer, verifyLocalPassword, verifyPendingEmail, resendPendingEmail, requestAccessReset, completeAccessReset, startAccountEmailVerification, finishAccountEmailVerification, type LocalAccount } from "./data/account";
 
 type Section="Dashboard"|"Lesson"|"RAT"|"CAT"|"Practice"|"Revision"|"Analytics"|"Calendar"|"Settings";
 const sections:Section[]=["Dashboard","Lesson","RAT","CAT","Practice","Revision","Analytics","Calendar","Settings"];
