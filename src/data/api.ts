@@ -116,6 +116,20 @@ export async function submitAssessment(type: "RAT" | "CAT" | "REVISION", session
 export async function fetchRemoteProgress() {
   return request<{ progress: unknown | null; updatedAt: string | null }>("/api/progress");
 }
+export async function awardLessonPoints(lessonId: string) {
+  return request<{ accepted: boolean; duplicate: boolean; pointsAwarded: number; verifiedPoints: number }>(
+    "/api/rewards/lesson",
+    { method: "POST", body: JSON.stringify({ lessonId }) }
+  );
+}
+
+export async function awardPracticePoints(sessionId: string, questionIds: string[], answers: Record<string, number>) {
+  return request<{ accepted: boolean; duplicate: boolean; pointsAwarded: number; verifiedPoints: number }>(
+    "/api/rewards/practice",
+    { method: "POST", body: JSON.stringify({ sessionId, questionIds, answers }) }
+  );
+}
+
 export async function saveRemoteProgress(progress: unknown, expectedUpdatedAt: string | null = null) {
   return request<{ ok: true; updatedAt: string }>("/api/progress", { method: "PUT", body: JSON.stringify({ progress, expectedUpdatedAt }) });
 }
