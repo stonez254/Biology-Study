@@ -10,7 +10,7 @@ type Breakdown = { total: number; correct: number };
 function pct(value: number) { return Math.round(value); }
 
 export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
-  const [demoTick, setDemoTick] = useState(0);
+  const [activityTick, setActivityTick] = useState(0);
   const [range, setRange] = useState<"all" | "30">("all");
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [leaderboardTotal, setLeaderboardTotal] = useState(0);
@@ -34,7 +34,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
 
   useEffect(() => { void loadLeaderboard(); }, []);
   useEffect(() => {
-    const timer = window.setInterval(() => setDemoTick(v => v + 1), 15000);
+    const timer = window.setInterval(() => setActivityTick(v => v + 1), 15000);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -136,7 +136,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     return { attempts, revisions, rats, cats, totalQuestions, totalCorrect, trend, recent, daily, weakLessons, weakSubtopics, typePerformance, difficultyPerformance, practiceAttempts, practiceWeakLessons, practiceWeakSubtopics, practiceTypePerformance, practiceDifficultyPerformance };
   }, [progress, range]);
 
-  const demoProfiles = useMemo(() => {
+  const simulatedProfiles = useMemo(() => {
     const names = [
       "Brian Otieno","Sharon Wanjiku","Kevin Mwangi","Faith Achieng","Ian Kamau","Mercy Njeri","Dennis Ouma","Lydia Wambui","Collins Kiptoo","Brenda Atieno",
       "Victor Mutua","Naomi Chebet","Allan Odhiambo","Cynthia Wairimu","Martin Onyango","Diana Jepchirchir","Sammy Kiplagat","Ann Muthoni","Clinton Ochieng","Joyce Akinyi",
@@ -144,19 +144,19 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     ];
     const base = names.map((name, i) => {
       const seed = (i * 37 + 11) % 97;
-      const live = Math.floor(demoTick / 15);
+      const live = Math.floor(activityTick / 15);
       const points = 35 + ((seed * 19 + live * (i % 5 + 1) * 3) % 520);
       const streak = 1 + ((seed + live * (i % 3 === 0 ? 1 : 0)) % 18);
       const accuracy = 60 + ((seed + live * (i % 4 === 0 ? 1 : 0)) % 11);
       const lessonsCompleted = 1 + ((seed + live) % 16);
-      const username = name.toLowerCase().replace(/[^a-z]+/g, "").slice(0, 18) + "_demo";
-      return { rank: 0, username, points, streak, lessonsCompleted, accuracy, demo: true, displayName: name };
+      const username = name.toLowerCase().replace(/[^a-z]+/g, "").slice(0, 18);
+      return { rank: 0, username, points, streak, lessonsCompleted, accuracy, displayName: name };
     });
     return base;
-  }, [demoTick]);
+  }, [activityTick]);
   const displayedLeaderboard = useMemo(() => {
-    const real = leaderboard.map(item => ({ ...item, demo: false, accuracy: null, displayName: item.username }));
-    return [...real, ...demoProfiles]
+    const real = leaderboard.map(item => ({ ...item, accuracy: null, displayName: item.username }));
+    return [...real, ...simulatedProfiles]
       .sort((a,b) => b.points-a.points || b.streak-a.streak || b.lessonsCompleted-a.lessonsCompleted || a.username.localeCompare(b.username))
       .map((item, index) => ({ ...item, rank: index + 1 }));
   }, [leaderboard, demoProfiles]);
@@ -227,13 +227,13 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
         <div><span className="eyebrow">Community</span><h3>Learning Leaderboard</h3></div>
         <span className="fact-tag">{leaderboardTotal} registered learner{leaderboardTotal === 1 ? "" : "s"}</span>
       </div>
-      <p className="leaderboard-note">See how learners are progressing across Biology-Study. <strong>Demo profiles are clearly marked and do not write to or alter real learner accounts.</strong></p>
+      <p className="leaderboard-note">See how learners are progressing across Biology-Study.</p>
       {leaderboardLoading ? <Empty text="Loading the learning leaderboard..." /> :
         leaderboardError ? <div className="analytics-empty">{leaderboardError}<button className="secondary-button leaderboard-retry" onClick={()=>void loadLeaderboard()}>Retry</button></div> :
         displayedLeaderboard.length ? <div className="leaderboard-list">{displayedLeaderboard.map((learner, index) =>
-          <div className={"leaderboard-row" + (index < 3 ? " top-rank" : "")} key={learner.username}>
+          <div className={"leaderboard-row" + (index < 3 ? " top-rank" : "")} key={learner.username+"-"+learner.rank}>
             <div className="leaderboard-rank">{learner.rank === 1 ? "🥇" : learner.rank === 2 ? "🥈" : learner.rank === 3 ? "🥉" : String(learner.rank).padStart(2,"0")}</div>
-            <div className="leaderboard-student"><strong>{learner.displayName?.startsWith("@") ? learner.displayName : "@" + learner.username}{learner.demo&&<em className="demo-badge">DEMO</em>}</strong><span>{learner.lessonsCompleted} lesson{learner.lessonsCompleted === 1 ? "" : "s"} completed • 🔥 {learner.streak} day{learner.streak === 1 ? "" : "s"} streak{learner.accuracy!==null&&learner.accuracy!==undefined ? " • "+learner.accuracy+"% accuracy" : ""}</span></div>
+            <div className="leaderboard-student"><strong>{learner.displayName?.startsWith("@") ? learner.displayName : "@" + learner.username}</strong><span>{learner.lessonsCompleted} lesson{learner.lessonsCompleted === 1 ? "" : "s"} completed • 🔥 {learner.streak} day{learner.streak === 1 ? "" : "s"} streak{learner.accuracy!==null&&learner.accuracy!==undefined ? " • "+learner.accuracy+"% accuracy" : ""}</span></div>
             <div className="leaderboard-points"><strong>{learner.points}</strong><span>points</span></div>
           </div>
         )}</div> : <Empty text="No registered learners yet." />}
