@@ -42,7 +42,7 @@ export function getProgress():StudyProgress{const raw=readScoped<Partial<StudyPr
   activeRevision:raw.activeRevision??null
 };}
 export function saveProgress(progress:StudyProgress){localStorage.setItem(scopedKey(PROGRESS_KEY),JSON.stringify(progress));void syncProgressToServer(progress);}
-export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt">):StudyProgress{const progress=getProgress();const next={...progress,practiceSessions:[{...result,id:crypto.randomUUID(),completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
+export function recordPracticeSession(result:Omit<PracticeSession,"id"|"completedAt"> & { id?: string }):StudyProgress{const progress=getProgress();const id=result.id??crypto.randomUUID();const next={...progress,points:progress.points+result.correct*5,practiceSessions:[{...result,id,completedAt:new Date().toISOString()},...progress.practiceSessions].slice(0,200)};saveProgress(next);return next;}
 function localDateKey(date=new Date()){return date.getFullYear()+"-"+String(date.getMonth()+1).padStart(2,"0")+"-"+String(date.getDate()).padStart(2,"0");}
 function dateAtMidnight(dateKey:string){const [year,month,day]=dateKey.split("-").map(Number);return new Date(year,month-1,day);}
 function addDays(date:Date,days:number){const next=new Date(date);next.setDate(next.getDate()+days);return next;}
@@ -55,7 +55,7 @@ export function markLessonRead(lessonId:string):StudyProgress{
  const alreadyToday=progress.lessonReadDate===today&&progress.lessonReadId===lessonId;
  if(alreadyToday)return progress;
  const completedLessonIds=progress.completedLessonIds.includes(lessonId)?progress.completedLessonIds:[...progress.completedLessonIds,lessonId];
- const next={...progress,lessonReadDate:today,lessonReadId:lessonId,completedLessonIds,lessonHistory:[{lessonId,completedAt:new Date().toISOString()},...progress.lessonHistory].slice(0,200)};
+ const next={...progress,points:progress.points+30,lessonReadDate:today,lessonReadId:lessonId,completedLessonIds,lessonHistory:[{lessonId,completedAt:new Date().toISOString()},...progress.lessonHistory].slice(0,200)};
  saveProgress(next);return next;
 }
 export function hasReadLessonToday(progress=getProgress(),lessonId?:string){return progress.lessonReadDate===localDateKey() && (!lessonId || progress.lessonReadId===lessonId);}
