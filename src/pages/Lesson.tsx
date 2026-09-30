@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { getLessonBankSummary, lessons } from "../data/lessons";
 import type { CurriculumTrack } from "../data/curriculum";
 import type { SchoolForm } from "../data/schoolForm";
-import { getProgress, getTodaysLessonId, hasReadLessonToday, markLessonRead, type StudyProgress } from "../data/progress";
+import { getProgress, getTodaysLessonId, hasReadLessonToday, markLessonRead, saveProgress, type StudyProgress } from "../data/progress";
+import { awardLessonPoints, backendEnabled } from "../data/api";
 
 type Props={curriculum:CurriculumTrack;schoolForm:SchoolForm;onRead:(progress:StudyProgress)=>void;onExit:()=>void};
 
@@ -37,7 +38,16 @@ export default function Lesson({curriculum,schoolForm,onRead,onExit}:Props){
    if(readPercent<100||confirmed)return;
    const next=markLessonRead(selected.id);
    setConfirmed(true);
-   setTimeout(()=>onRead(next),250);
+   if(backendEnabled()){
+     void awardLessonPoints(selected.id).then(remote=>{
+       const latest=getProgress();
+       const synced={...latest,points:remote.verifiedPoints};
+       saveProgress(synced);
+       setTimeout(()=>onRead(synced),250);
+     }).catch(()=>setTimeout(()=>onRead(next),250));
+   }else{
+     setTimeout(()=>onRead(next),250);
+   }
  };
 
  return <div className="content">
