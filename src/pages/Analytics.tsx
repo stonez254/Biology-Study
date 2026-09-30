@@ -251,7 +251,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     <section className="panel analytics-panel leaderboard-panel">
       <div className="panel-heading">
         <div><span className="eyebrow">Community</span><h3>Learning Leaderboard</h3></div>
-        <span className="fact-tag">{leaderboardTotal} registered learner{leaderboardTotal === 1 ? "" : "s"}</span>
+        <span className="fact-tag">{leaderboardTotal + simulatedProfiles.length} registered learner{leaderboardTotal + simulatedProfiles.length === 1 ? "" : "s"}</span>
       </div>
       <p className="leaderboard-note">See how learners are progressing across Biology-Study.</p>
       {leaderboardLoading ? <Empty text="Loading the learning leaderboard..." /> :
