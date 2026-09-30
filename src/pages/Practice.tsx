@@ -4,7 +4,8 @@ import type { CurriculumTrack } from "../data/curriculum";
 import { getSchoolForm, includesForm, type SchoolForm } from "../data/schoolForm";
 import { matchesCurriculum } from "../data/questionCurriculum";
 import { selectPracticeQuestions } from "../data/questionSelector";
-import { getProgress, recordPracticeSession, type StudyProgress } from "../data/progress";
+import { getProgress, recordPracticeSession, saveProgress, type StudyProgress } from "../data/progress";
+import { awardPracticePoints, backendEnabled } from "../data/api";
 
 type Props = { curriculum: CurriculumTrack; schoolForm: SchoolForm; onExit: () => void; onProgress?: (progress: StudyProgress) => void };
 
@@ -39,6 +40,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
   const [session, setSession] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
+  const [answers, setAnswers] = useState<Record<string, number>>({});
   const [correct, setCorrect] = useState(0);
   const [correctQuestionIds, setCorrectQuestionIds] = useState<string[]>([]);
   const [incorrectQuestionIds, setIncorrectQuestionIds] = useState<string[]>([]);
@@ -127,6 +129,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
     setSession(chosen);
     setCurrent(0);
     setAnswer(null);
+    setAnswers({});
     setCorrect(0);
     setCorrectQuestionIds([]);
     setIncorrectQuestionIds([]);
@@ -141,6 +144,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
     if (answer !== null || !session.length) return;
     const isCorrect = index === session[current].answer;
     setAnswer(index);
+    setAnswers(v => ({ ...v, [session[current].id]: index }));
     if (isCorrect) {
       setCorrect(v => v + 1);
       setCorrectQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
@@ -159,6 +163,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
         if (value <= 1) {
           window.clearInterval(timer);
           setAnswer(-1);
+          setAnswers(v => ({ ...v, [session[current].id]: -1 }));
           setTimedOutQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
           setIncorrectQuestionIds(v => v.includes(session[current].id) ? v : [...v, session[current].id]);
           setCombo(0);
@@ -183,6 +188,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
     if (!finished || recordedSession.current || !session.length) return;
     recordedSession.current = true;
     const result = recordPracticeSession({
+      id: crypto.randomUUID(),
       total: session.length,
       correct,
       accuracy: Math.round(correct / session.length * 100),
@@ -195,6 +201,16 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
       difficulty: difficulty === "All" ? "Mixed" : difficulty,
     });
     onProgress?.(result);
+    if (backendEnabled()) {
+      void awardPracticePoints(result.practiceSessions[0].id, session.map(question => question.id), answers)
+        .then(remote => {
+          const latest = getProgress();
+          const synced = { ...latest, points: remote.verifiedPoints };
+          saveProgress(synced);
+          onProgress?.(synced);
+        })
+        .catch(() => {});
+    }
   }, [finished, session, correct, maxCombo, correctQuestionIds, incorrectQuestionIds, timedOutQuestionIds, topic, difficulty, onProgress]);
 
   useEffect(() => {
