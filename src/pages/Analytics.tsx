@@ -7,7 +7,17 @@ import { fetchLeaderboard, type LeaderboardEntry } from "../data/api";
 type AnalyticsProps = { progress: StudyProgress; onRefresh: (progress: StudyProgress) => void };
 type Breakdown = { total: number; correct: number };
 
-const SIMULATION_STARTED_AT = Date.now();
+const SIMULATION_STARTED_KEY = "biology-study:leaderboard-simulation-started-at";
+
+function getSimulationStartedAt() {
+  if (typeof window === "undefined") return Date.now();
+  const stored = window.localStorage.getItem(SIMULATION_STARTED_KEY);
+  const parsed = stored ? Number(stored) : NaN;
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  const startedAt = Date.now();
+  window.localStorage.setItem(SIMULATION_STARTED_KEY, String(startedAt));
+  return startedAt;
+}
 
 function pct(value: number) { return Math.round(value); }
 
@@ -151,7 +161,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     // The leading three start close together with different initial delays,
     // allowing their positions to rotate naturally as their award cycles catch up.
     const fiveMinutes = 5 * 60 * 1000;
-    const elapsedMs = Math.max(0, Date.now() - SIMULATION_STARTED_AT);
+    const elapsedMs = Math.max(0, Date.now() - getSimulationStartedAt());
     const elapsedPeriods = Math.floor(elapsedMs / fiveMinutes);
 
     const basePoints = [
@@ -170,13 +180,10 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
       const delay = i < 3 ? initialDelayPeriods[i] : 0;
       const earnedPeriods = Math.max(0, elapsedPeriods - delay);
       const points = basePoints[i] + earnedPeriods * 10;
+      // Keep lesson totals proportional to points so simulated records remain believable.
       const lessonsCompleted = i === 0
-        ? 32 + earnedPeriods
-        : i === 1
-          ? 31 + earnedPeriods
-          : i === 2
-            ? 31 + earnedPeriods
-            : Math.max(1, Math.round(points / 27.3));
+        ? Math.max(32, Math.round(points / 27.3))
+        : Math.max(1, Math.round(points / 27.3));
       const accuracy = 60 + ((i * 7 + Math.floor(points / 10)) % 11);
       const streak = 2 + ((i * 3 + Math.floor(points / 20)) % 19);
       const username = name.toLowerCase().replace(/[^a-z]+/g, "").slice(0, 18);
