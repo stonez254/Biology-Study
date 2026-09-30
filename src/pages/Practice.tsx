@@ -224,7 +224,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
       <div className="practice-hero panel">
         <span className="badge">PRACTICE LAB</span>
         <h2>Train without pressure.</h2>
-        <p>Practice questions are for learning only. They do not award RAT, CAT, or revision points.</p>
+        <p>Every correct practice answer earns 5 points, even when you repeat a question. Practice points are separate from RAT, CAT, and revision scoring.</p>
         <div className="practice-controls">
           <label>Mode
             <select value={mode} onChange={e => setMode(e.target.value as PracticeMode)}>
@@ -294,7 +294,7 @@ export default function Practice({ curriculum, schoolForm, onExit, onProgress }:
       <div className="result-card practice-result">
         <span className={accuracy >= 70 ? "badge success" : "badge warning"}>{accuracy >= 70 ? "GOOD SESSION" : "KEEP PRACTISING"}</span>
         <h2>{correct} / {session.length} correct</h2>
-        <p>You reached {accuracy}% accuracy. Practice is deliberately separate from assessment scoring.</p>
+        <p>You reached {accuracy}% accuracy and earned {correct * 5} points from correct practice answers.</p>
         <div className="result-grid">
           <div><strong>{accuracy}%</strong><span>Accuracy</span></div>
           <div><strong>{incorrect}</strong><span>Incorrect</span></div>
