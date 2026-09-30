@@ -7,7 +7,7 @@ export { questionBank, QUESTION_BANK_SIZE, getQuestionsForLesson };
 export const questions: Question[] = questionBank;
 
 export const RAT_QUESTION_COUNT = 10;
-export const RAT_DURATION_SECONDS = 15 * 60;
+export const RAT_DURATION_SECONDS = 10 * 60;
 export const RAT_POINTS_PER_CORRECT = 5;
 
 export function shuffleQuestions(source: Question[], count: number): Question[] {
