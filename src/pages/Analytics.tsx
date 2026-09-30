@@ -7,6 +7,8 @@ import { fetchLeaderboard, type LeaderboardEntry } from "../data/api";
 type AnalyticsProps = { progress: StudyProgress; onRefresh: (progress: StudyProgress) => void };
 type Breakdown = { total: number; correct: number };
 
+const SIMULATION_STARTED_AT = Date.now();
+
 function pct(value: number) { return Math.round(value); }
 
 export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
@@ -148,7 +150,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     // Simulated activity advances at exactly 10 points per two-hour period.
     // The first learner starts at 873 points and 32 completed lessons.
     const twoHours = 2 * 60 * 60 * 1000;
-    const elapsedPeriods = Math.floor((Date.now() - Date.now()) / twoHours);
+    const elapsedPeriods = Math.floor((Date.now() - SIMULATION_STARTED_AT) / twoHours);
 
     const basePoints = [
       873, 821, 784, 751, 724, 698, 671, 645, 619, 592,
