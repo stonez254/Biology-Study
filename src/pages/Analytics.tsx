@@ -140,19 +140,43 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     const names = [
       "Brian Otieno","Sharon Wanjiku","Kevin Mwangi","Faith Achieng","Ian Kamau","Mercy Njeri","Dennis Ouma","Lydia Wambui","Collins Kiptoo","Brenda Atieno",
       "Victor Mutua","Naomi Chebet","Allan Odhiambo","Cynthia Wairimu","Martin Onyango","Diana Jepchirchir","Sammy Kiplagat","Ann Muthoni","Clinton Ochieng","Joyce Akinyi",
-      "Elvis Maina","Purity Wekesa","Arnold Barasa","Maureen Adhiambo","Eric Kiptoo","Stella Nyambura","George Okello","Irene Moraa","Nelson Kariuki","Ruth Chepngeno"
+      "Elvis Maina","Purity Wekesa","Arnold Barasa","Maureen Adhiambo","Eric Kiptoo","Stella Nyambura","George Okello","Irene Moraa","Nelson Kariuki","Ruth Chepngeno",
+      "Dennis Kamau","Angela Akinyi","Mark Ochieng","Mercy Wambui","Felix Otieno","Brenda Wairimu","Brian Kiptoo","Janet Achieng","Victor Onyango","Lucy Njeri",
+      "Allan Mwangi","Faith Wekesa","Samuel Okello","Doris Atieno","Kevin Ouma","Mary Chebet","Daniel Mutua","Caroline Njeri","Peter Odhiambo","Susan Wanjiku"
     ];
-    const base = names.map((name, i) => {
-      const seed = (i * 37 + 11) % 97;
-      const live = Math.floor(activityTick / 15);
-      const points = 35 + ((seed * 19 + live * (i % 5 + 1) * 3) % 520);
-      const streak = 1 + ((seed + live * (i % 3 === 0 ? 1 : 0)) % 18);
-      const accuracy = 60 + ((seed + live * (i % 4 === 0 ? 1 : 0)) % 11);
-      const lessonsCompleted = 1 + ((seed + live) % 16);
+
+    // Simulated activity advances at exactly 10 points per two-hour period.
+    // The first learner starts at 873 points and 32 completed lessons.
+    const twoHours = 2 * 60 * 60 * 1000;
+    const elapsedPeriods = Math.floor((Date.now() - Date.now()) / twoHours);
+
+    const basePoints = [
+      873, 821, 784, 751, 724, 698, 671, 645, 619, 592,
+      568, 544, 521, 498, 476, 454, 433, 412, 392, 372,
+      353, 335, 317, 300, 283, 267, 251, 235, 220, 205,
+      190, 176, 162, 149, 136, 124, 112, 100, 90, 80,
+      70, 60, 50, 45, 40, 35, 30, 25, 20, 15
+    ];
+
+    return names.map((name, i) => {
+      const points = basePoints[i] + elapsedPeriods * 10;
+      const lessonsCompleted = i === 0
+        ? 32 + elapsedPeriods
+        : Math.max(1, Math.round(points / 27.3));
+      const accuracy = 60 + ((i * 7 + Math.floor(points / 10)) % 11);
+      const streak = 2 + ((i * 3 + Math.floor(points / 20)) % 19);
       const username = name.toLowerCase().replace(/[^a-z]+/g, "").slice(0, 18);
-      return { rank: 0, username, points, streak, lessonsCompleted, accuracy, displayName: name };
+
+      return {
+        rank: 0,
+        username,
+        points,
+        streak,
+        lessonsCompleted,
+        accuracy,
+        displayName: name
+      };
     });
-    return base;
   }, [activityTick]);
   const displayedLeaderboard = useMemo(() => {
     const real = leaderboard.map(item => ({ ...item, accuracy: null, displayName: item.username }));
