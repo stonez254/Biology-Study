@@ -159,7 +159,7 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
     return [...real, ...simulatedProfiles]
       .sort((a,b) => b.points-a.points || b.streak-a.streak || b.lessonsCompleted-a.lessonsCompleted || a.username.localeCompare(b.username))
       .map((item, index) => ({ ...item, rank: index + 1 }));
-  }, [leaderboard, demoProfiles]);
+  }, [leaderboard, simulatedProfiles]);
   const coverage = lessons.length ? pct((progress.completedLessonIds.length / lessons.length) * 100) : 0;
   const hasBreakdown = data.attempts.some(a => (a.correctQuestionIds ?? []).length > 0);
   const practice = progress.practiceSessions ?? [];
