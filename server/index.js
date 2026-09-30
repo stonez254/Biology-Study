@@ -37,6 +37,15 @@ await pool.query(`
   CREATE TABLE IF NOT EXISTS email_verification_codes (id UUID PRIMARY KEY, email TEXT NOT NULL, purpose TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TIMESTAMPTZ NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW());
   CREATE INDEX IF NOT EXISTS email_verification_lookup_idx ON email_verification_codes (LOWER(email), purpose, created_at DESC);
   CREATE UNIQUE INDEX IF NOT EXISTS users_email_unique_idx ON users (LOWER(email)) WHERE email IS NOT NULL;
+  CREATE TABLE IF NOT EXISTS point_rewards (
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    reward_type TEXT NOT NULL,
+    reward_key TEXT NOT NULL,
+    points INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (user_id, reward_type, reward_key)
+  );
+
   CREATE TABLE IF NOT EXISTS study_progress (
     user_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     progress JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -957,6 +966,79 @@ app.get("/api/assessment-state/:type", auth, async (req, res) => {
   if (!["RAT", "CAT", "REVISION"].includes(type)) return res.status(400).json({ error: "Invalid assessment type." });
   const result = await pool.query("SELECT state, updated_at FROM assessment_states WHERE user_id = $1 AND assessment_type = $2", [req.user.id, type]);
   res.json({ state: result.rows[0]?.state ?? null, updatedAt: result.rows[0]?.updated_at ?? null });
+});
+
+async function awardVerifiedPoints(userId, rewardType, rewardKey, points) {
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    await client.query("SELECT id FROM users WHERE id = $1 FOR UPDATE", [userId]);
+    const inserted = await client.query(
+      "INSERT INTO point_rewards (user_id, reward_type, reward_key, points) VALUES ($1, $2, $3, $4) ON CONFLICT (user_id, reward_type, reward_key) DO NOTHING RETURNING points",
+      [userId, rewardType, rewardKey, points],
+    );
+    const state = await client.query("SELECT points FROM verified_account_state WHERE user_id = $1 FOR UPDATE", [userId]);
+    const current = Number(state.rows[0]?.points ?? 0);
+    const awarded = inserted.rows[0] ? Number(inserted.rows[0].points) : 0;
+    const nextPoints = current + awarded;
+    await client.query(
+      "INSERT INTO verified_account_state (user_id, points, updated_at) VALUES ($1, $2, NOW()) ON CONFLICT (user_id) DO UPDATE SET points = EXCLUDED.points, updated_at = NOW()",
+      [userId, nextPoints],
+    );
+    const stored = await client.query("SELECT progress FROM study_progress WHERE user_id = $1 FOR UPDATE", [userId]);
+    const base = stored.rows[0]?.progress && typeof stored.rows[0].progress === "object" ? stored.rows[0].progress : {};
+    await client.query(
+      "INSERT INTO study_progress (user_id, progress, updated_at) VALUES ($1, $2::jsonb, NOW()) ON CONFLICT (user_id) DO UPDATE SET progress = EXCLUDED.progress, updated_at = NOW()",
+      [userId, JSON.stringify({ ...base, points: nextPoints })],
+    );
+    await client.query("COMMIT");
+    return { accepted: true, duplicate: !inserted.rows[0], pointsAwarded: awarded, verifiedPoints: nextPoints };
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+app.post("/api/rewards/lesson", auth, async (req, res) => {
+  const lessonId = String(req.body?.lessonId || "").trim();
+  if (!lessonId || lessonId.length > 160) return res.status(400).json({ error: "Invalid lesson." });
+  const nairobiDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Nairobi", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  try {
+    return res.json(await awardVerifiedPoints(req.user.id, "LESSON", nairobiDate + ":" + lessonId, 30));
+  } catch (error) {
+    console.error("lesson reward", error);
+    return res.status(500).json({ error: "Lesson reward could not be recorded." });
+  }
+});
+
+app.post("/api/rewards/practice", auth, async (req, res) => {
+  const sessionId = String(req.body?.sessionId || "");
+  const questionIds = Array.isArray(req.body?.questionIds) ? req.body.questionIds.map(String) : [];
+  const rawAnswers = req.body?.answers && typeof req.body.answers === "object" && !Array.isArray(req.body.answers) ? req.body.answers : null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(sessionId)) return res.status(400).json({ error: "Invalid practice session." });
+  if (!questionIds.length || questionIds.length > 100 || new Set(questionIds).size !== questionIds.length || !rawAnswers) return res.status(400).json({ error: "Invalid practice submission." });
+
+  const expectedAnswers = {};
+  const importedIds = questionIds.filter(id => typeof QUESTION_ANSWER_KEY[id] !== "number");
+  for (const id of questionIds) {
+    if (typeof QUESTION_ANSWER_KEY[id] === "number") expectedAnswers[id] = QUESTION_ANSWER_KEY[id];
+  }
+  if (importedIds.length) {
+    const imported = await pool.query("SELECT id, correct_index FROM question_bank_items WHERE active = TRUE AND id = ANY($1::text[])", [importedIds]);
+    if (imported.rows.length !== importedIds.length) return res.status(400).json({ error: "Practice contains an unknown question." });
+    for (const row of imported.rows) expectedAnswers[row.id] = Number(row.correct_index);
+  }
+  if (Object.keys(expectedAnswers).length !== questionIds.length) return res.status(400).json({ error: "Practice contains an unknown question." });
+
+  const correct = questionIds.filter(id => Number.isInteger(rawAnswers[id]) && rawAnswers[id] === expectedAnswers[id]).length;
+  try {
+    return res.json(await awardVerifiedPoints(req.user.id, "PRACTICE", sessionId, correct * 5));
+  } catch (error) {
+    console.error("practice reward", error);
+    return res.status(500).json({ error: "Practice reward could not be recorded." });
+  }
 });
 
 app.put("/api/progress", auth, async (req, res) => {
