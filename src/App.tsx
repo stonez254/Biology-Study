@@ -5,6 +5,7 @@ import Revision from "./pages/Revision";
 import Practice from "./pages/Practice";
 import Lesson from "./pages/Lesson";
 import Analytics from "./pages/Analytics";
+import PROFILE_PHOTO from "./assets/profilePhoto";
 import { getProgress, hasCompletedRATToday, hasReadLessonToday, getCATStatus, replaceProgress, clearActiveRAT, type StudyProgress } from "./data/progress";
 import { getDailyFact } from "./data/commonKnowledge";
 import { CURRICULUM_TRACKS, getCurriculumTrack, setCurriculumTrack, type CurriculumTrack } from "./data/curriculum";
