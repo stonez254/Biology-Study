@@ -147,24 +147,36 @@ export default function Analytics({ progress, onRefresh }: AnalyticsProps) {
       "Allan Mwangi","Faith Wekesa","Samuel Okello","Doris Atieno","Kevin Ouma","Mary Chebet","Daniel Mutua","Caroline Njeri","Peter Odhiambo","Susan Wanjiku"
     ];
 
-    // Simulated activity advances at exactly 10 points per two-hour period.
-    // The first learner starts at 873 points and 32 completed lessons.
-    const twoHours = 2 * 60 * 60 * 1000;
-    const elapsedPeriods = Math.floor((Date.now() - SIMULATION_STARTED_AT) / twoHours);
+    // Simulated activity awards exactly 10 points every 5 minutes.
+    // The leading three start close together with different initial delays,
+    // allowing their positions to rotate naturally as their award cycles catch up.
+    const fiveMinutes = 5 * 60 * 1000;
+    const elapsedMs = Math.max(0, Date.now() - SIMULATION_STARTED_AT);
+    const elapsedPeriods = Math.floor(elapsedMs / fiveMinutes);
 
     const basePoints = [
-      873, 821, 784, 751, 724, 698, 671, 645, 619, 592,
+      873, 865, 857, 751, 724, 698, 671, 645, 619, 592,
       568, 544, 521, 498, 476, 454, 433, 412, 392, 372,
       353, 335, 317, 300, 283, 267, 251, 235, 220, 205,
       190, 176, 162, 149, 136, 124, 112, 100, 90, 80,
       70, 60, 50, 45, 40, 35, 30, 25, 20, 15
     ];
 
+    // Different initial delays for the top three:
+    // #1 waits 10 minutes, #2 waits 5 minutes, #3 starts immediately.
+    const initialDelayPeriods = [2, 1, 0];
+
     return names.map((name, i) => {
-      const points = basePoints[i] + elapsedPeriods * 10;
+      const delay = i < 3 ? initialDelayPeriods[i] : 0;
+      const earnedPeriods = Math.max(0, elapsedPeriods - delay);
+      const points = basePoints[i] + earnedPeriods * 10;
       const lessonsCompleted = i === 0
-        ? 32 + elapsedPeriods
-        : Math.max(1, Math.round(points / 27.3));
+        ? 32 + earnedPeriods
+        : i === 1
+          ? 31 + earnedPeriods
+          : i === 2
+            ? 31 + earnedPeriods
+            : Math.max(1, Math.round(points / 27.3));
       const accuracy = 60 + ((i * 7 + Math.floor(points / 10)) % 11);
       const streak = 2 + ((i * 3 + Math.floor(points / 20)) % 19);
       const username = name.toLowerCase().replace(/[^a-z]+/g, "").slice(0, 18);
