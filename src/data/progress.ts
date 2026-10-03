@@ -62,7 +62,11 @@ export function hasReadLessonToday(progress=getProgress(),lessonId?:string){retu
 export function getTodaysLessonId(curriculum: CurriculumTrack = getCurriculumTrack(), schoolForm: SchoolForm = getSchoolForm()){
  const available=curriculum === "high-school"
    ? HIGH_SCHOOL_ACTIVE_LESSONS.filter(lesson => includesForm(schoolForm, lesson.form))
-   : ACTIVE_LESSONS.filter(lesson => curriculum === "all" || lesson.curriculum === curriculum || !lesson.curriculum);
+   : curriculum === "university"
+     ? ACTIVE_LESSONS.filter(lesson => (lesson.curriculum ?? "university") === "university")
+     : curriculum === "medical"
+       ? ACTIVE_LESSONS.filter(lesson => lesson.curriculum === "medical")
+       : ACTIVE_LESSONS;
  if(!available.length)return "cellular-energy";
  const index=Math.floor(Date.now()/86400000)%available.length;
  return available[index].id;
