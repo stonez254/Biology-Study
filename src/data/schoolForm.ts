@@ -13,5 +13,7 @@ export function setSchoolForm(form: SchoolForm) {
 }
 
 export function includesForm(selectedForm: SchoolForm, lessonForm?: SchoolForm) {
-  return lessonForm != null && lessonForm <= selectedForm;
+  // Form 1, 2 and 3 selections are isolated to that exact form.
+  // Form 4 is the cumulative senior selection and intentionally includes Forms 1–4.
+  return lessonForm != null && (selectedForm === 4 || lessonForm === selectedForm);
 }
