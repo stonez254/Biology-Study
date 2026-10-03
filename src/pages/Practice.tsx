@@ -30,7 +30,7 @@ function rememberQuestionIds(ids: string[]) {
 }
 
 export default function Practice({ curriculum, schoolForm, onExit, onProgress }: Props) {
-  const curriculumQuestions = useMemo(() => questions.filter(q => matchesCurriculum(q, curriculum) && (curriculum !== "high-school" || (q.form != null ? q.form <= schoolForm : false))), [curriculum, schoolForm]);
+  const curriculumQuestions = useMemo(() => questions.filter(q => matchesCurriculum(q, curriculum) && (curriculum !== "high-school" || (q.form != null && (schoolForm === 4 || q.form === schoolForm)))), [curriculum, schoolForm]);
   const topics = useMemo(() => Array.from(new Set(curriculumQuestions.map(q => q.topic))).sort(), [curriculumQuestions]);
   const difficulties = ["All", "Easy", "Medium", "Hard"] as const;
   const [mode, setMode] = useState<PracticeMode>("Adaptive");
