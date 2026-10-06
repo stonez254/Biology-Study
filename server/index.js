@@ -215,7 +215,7 @@ async function verifyCode(email, purpose, code) {
 }
 async function sendVerificationCode(email, purpose, code) {
   const reset = purpose === "password-reset";
-  const subject = reset ? "Biology-Study password reset code" : "Verify your Biology-Study email";
+  const subject = reset ? "Eugine's Biology password reset code" : "Verify your Eugine's Biology email";
   const title = reset ? "Reset your password" : "Verify your email address";
   const html = "<div style=\"font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:24px\"><h2>" + title + "</h2><p>Your Biology-Study verification code is:</p><div style=\"font-size:32px;font-weight:700;letter-spacing:8px;margin:24px 0\">" + code + "</div><p>This code expires in " + (reset ? "15" : "10") + " minutes.</p><p style=\"color:#666\">EDERSTONE @2026</p></div>";
   await sendEmail(email, subject, html);
@@ -1093,4 +1093,4 @@ app.put("/api/progress", auth, async (req, res) => {
   });
 });
 
-app.listen(port, () => console.log(`Biology-Study API listening on port ${port}`));
+app.listen(port, () => console.log(`Eugine's Biology API listening on port ${port}`));
