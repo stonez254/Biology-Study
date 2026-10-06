@@ -1,4 +1,4 @@
-# Biology-Study Project Plan
+# Eugine's Biology Project Plan
 
 ## Phase 1 — Foundation
 1. Project scaffold
