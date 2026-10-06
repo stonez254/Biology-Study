@@ -1,4 +1,4 @@
-# Biology-Study
+# Eugine's Biology
 
 A modern biology and medical study platform with daily RATs, scheduled CATs, revision, analytics, gamification, and offline-safe study progress.
 
