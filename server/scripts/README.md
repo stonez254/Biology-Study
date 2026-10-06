@@ -1,8 +1,8 @@
-# Biology-Study question-bank ingestion
+# Eugine's Biology question-bank ingestion
 
 ## MedMCQA
 
-Biology-Study can ingest the original MedMCQA JSON dataset into the Render PostgreSQL database without bundling the full dataset into the web application.
+Eugine's Biology can ingest the original MedMCQA JSON dataset into the Render PostgreSQL database without bundling the full dataset into the web application.
 
 MedMCQA provides question text, four options, a correct option index, explanations, subjects and topics. The original repository documents the dataset and its download location:
 https://github.com/medmcqa/medmcqa
@@ -19,7 +19,7 @@ Do not commit the full dataset into this repository.
 
 ### 2. Set database access
 
-Set `DATABASE_URL` to the same Render PostgreSQL connection string used by the Biology-Study API.
+Set `DATABASE_URL` to the same Render PostgreSQL connection string used by the Eugine's Biology API.
 
 ### 3. Import
 
@@ -33,7 +33,7 @@ npm run import:medmcqa -- ./medmcqa_data
 The importer:
 
 - imports only single-answer questions;
-- filters to biology/medical subjects relevant to Biology-Study;
+- filters to biology/medical subjects relevant to Eugine's Biology;
 - converts MedMCQA's 1-4 answer index to our 0-3 index;
 - preserves the original subject/topic;
 - stores explanations;
@@ -66,7 +66,7 @@ The question endpoint intentionally omits `correct_index`. Existing server-side 
 
 ## Licensing and attribution
 
-The original MedMCQA repository is publicly available and identifies its repository as MIT licensed, but the dataset contains examination-derived material. Before public redistribution or commercial use of imported question text, review the dataset's current terms and the provenance of the individual questions. Biology-Study stores source metadata so the origin is not lost.
+The original MedMCQA repository is publicly available and identifies its repository as MIT licensed, but the dataset contains examination-derived material. Before public redistribution or commercial use of imported question text, review the dataset's current terms and the provenance of the individual questions. Eugine's Biology stores source metadata so the origin is not lost.
 
 Citation:
 
