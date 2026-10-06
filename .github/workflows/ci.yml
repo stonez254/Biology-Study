@@ -1,4 +1,4 @@
-name: Biology Study CI
+name: Eugine's Biology CI
 
 on:
   push:
