@@ -125,7 +125,7 @@ export default function CAT({ onExit, onProgress }: Props) {
   }
 
   if (!backendEnabled()) {
-    return <div className="content"><div className="empty-state"><span className="badge warning">BACKEND REQUIRED</span><h2>CAT needs the question server</h2><p>Connect the Biology-Study API so CAT questions can be issued and scored securely.</p><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
+    return <div className="content"><div className="empty-state"><span className="badge warning">BACKEND REQUIRED</span><h2>CAT needs the question server</h2><p>Connect the Eugine's Biology API so CAT questions can be issued and scored securely.</p><button className="secondary-button" onClick={onExit}>Back to dashboard</button></div></div>;
   }
 
   if (loading || (!testQuestions.length && !loadError)) {
