@@ -10,7 +10,7 @@ import { getProgress, hasCompletedRATToday, hasReadLessonToday, getCATStatus, re
 import { getDailyFact } from "./data/commonKnowledge";
 import { CURRICULUM_TRACKS, getCurriculumTrack, setCurriculumTrack, type CurriculumTrack } from "./data/curriculum";
 import { getSchoolForm, setSchoolForm, type SchoolForm } from "./data/schoolForm";
-import { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, getSavedAccounts, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, saveAccountEmail, syncProgressToServer, verifyLocalPassword, verifyPendingEmail, resendPendingEmail, requestAccessReset, completeAccessReset, startAccountEmailVerification, finishAccountEmailVerification, type LocalAccount } from "./data/account";
+import { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, getSavedAccounts, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, saveAccountEmail, syncProgressToServer, verifyLocalPassword, verifyPendingEmail, resendPendingEmail, requestAccessReset, completeAccessReset, startAccountEmailVerification, finishAccountEmailVerification, clearRemoteSession, type LocalAccount } from "./data/account";
 
 type Section="Dashboard"|"Lesson"|"RAT"|"CAT"|"Practice"|"Revision"|"Analytics"|"Calendar"|"About"|"Feedback"|"Settings";
 const sections:Section[]=["Dashboard","Lesson","RAT","CAT","Practice","Revision","Analytics","Calendar","About","Feedback","Settings"];
@@ -26,7 +26,7 @@ function App(){
  const [cookieConsent,setCookieConsent]=useState(()=>hasCookieConsent());
  const [scrollProgress,setScrollProgress]=useState(0),[curriculum,setCurriculum]=useState<CurriculumTrack>(()=>getCurriculumTrack()),[schoolForm,setSchoolFormState]=useState<SchoolForm>(()=>getSchoolForm());
  const [selectionConfigured,setSelectionConfigured]=useState(()=>localStorage.getItem("biology-study:selection-configured")==="true");
- useEffect(()=>{const timer=window.setInterval(()=>setTime(new Date()),1000);return()=>window.clearInterval(timer);},[]);
+ useEffect(()=>{const timer=window.setInterval(()=>setTime(new Date()),1000);return()=>window.clearInterval(timer);},[]); useEffect(()=>{\n   const handlePageLeave=()=>{\n     sessionStorage.removeItem("biology-study:authenticated");\n     localStorage.removeItem("biology-study:remember-login");\n     clearRemoteSession();\n   };\n   window.addEventListener("pagehide",handlePageLeave);\n   return()=>window.removeEventListener("pagehide",handlePageLeave);\n },[]);
  useEffect(()=>{void (async()=>{if(!hasRemoteSession())return;const remote=await hydrateRemoteProgress();if(remote&&typeof remote==="object")setProgress(replaceProgress(remote as StudyProgress));})();},[]);
  useEffect(()=>{const handleOnline=()=>{if(hasRemoteSession())void syncProgressToServer(getProgress());};window.addEventListener("online",handleOnline);return()=>window.removeEventListener("online",handleOnline);},[]);
  useEffect(()=>{document.documentElement.dataset.theme=dark?"dark":"light";},[dark]);
