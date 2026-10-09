@@ -818,7 +818,7 @@ app.post("/api/assessment/submit", auth, async (req, res) => {
   const answers = {};
   for (const id of questionIds) {
     const value = rawAnswers[id];
-    if (!Number.isInteger(value) || value < 0 || value > 3) {
+    if (!Number.isInteger(value) || value < -1 || value > 3) {
       return res.status(400).json({ error: "Assessment contains an invalid answer." });
     }
     answers[id] = value;
