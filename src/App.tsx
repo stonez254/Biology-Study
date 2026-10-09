@@ -26,7 +26,16 @@ function App(){
  const [cookieConsent,setCookieConsent]=useState(()=>hasCookieConsent());
  const [scrollProgress,setScrollProgress]=useState(0),[curriculum,setCurriculum]=useState<CurriculumTrack>(()=>getCurriculumTrack()),[schoolForm,setSchoolFormState]=useState<SchoolForm>(()=>getSchoolForm());
  const [selectionConfigured,setSelectionConfigured]=useState(()=>localStorage.getItem("biology-study:selection-configured")==="true");
- useEffect(()=>{const timer=window.setInterval(()=>setTime(new Date()),1000);return()=>window.clearInterval(timer);},[]); useEffect(()=>{\n   const handlePageLeave=()=>{\n     sessionStorage.removeItem("biology-study:authenticated");\n     localStorage.removeItem("biology-study:remember-login");\n     clearRemoteSession();\n   };\n   window.addEventListener("pagehide",handlePageLeave);\n   return()=>window.removeEventListener("pagehide",handlePageLeave);\n },[]);
+ useEffect(()=>{const timer=window.setInterval(()=>setTime(new Date()),1000);return()=>window.clearInterval(timer);},[]);
+ useEffect(()=>{
+   const handlePageLeave=()=>{
+     sessionStorage.removeItem("biology-study:authenticated");
+     localStorage.removeItem("biology-study:remember-login");
+     clearRemoteSession();
+   };
+   window.addEventListener("pagehide",handlePageLeave);
+   return()=>window.removeEventListener("pagehide",handlePageLeave);
+ },[]);
  useEffect(()=>{void (async()=>{if(!hasRemoteSession())return;const remote=await hydrateRemoteProgress();if(remote&&typeof remote==="object")setProgress(replaceProgress(remote as StudyProgress));})();},[]);
  useEffect(()=>{const handleOnline=()=>{if(hasRemoteSession())void syncProgressToServer(getProgress());};window.addEventListener("online",handleOnline);return()=>window.removeEventListener("online",handleOnline);},[]);
  useEffect(()=>{document.documentElement.dataset.theme=dark?"dark":"light";},[dark]);
