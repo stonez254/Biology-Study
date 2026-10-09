@@ -76,8 +76,8 @@ export default function Notes({ accountId }: { accountId?: string }) {
   const key = useMemo(() => notesKey(accountId), [accountId]);
   const [notes, setNotes] = useState<Note[]>(() => readNotes(key));
   const [selectedId, setSelectedId] = useState<string | null>(() => readNotes(key)[0]?.id ?? null);
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
+  const [title, setTitle] = useState(() => readNotes(key)[0]?.title ?? "");
+  const [body, setBody] = useState(() => readNotes(key)[0]?.body ?? "");
   const [status, setStatus] = useState("Your notes are saved on this device.");
   const [search, setSearch] = useState("");
 
@@ -85,8 +85,8 @@ export default function Notes({ accountId }: { accountId?: string }) {
     const saved = readNotes(key);
     setNotes(saved);
     setSelectedId(saved[0]?.id ?? null);
-    setTitle("");
-    setBody("");
+    setTitle(saved[0]?.title ?? "");
+    setBody(saved[0]?.body ?? "");
     setStatus("Your notes are saved on this device.");
   }, [key]);
 
