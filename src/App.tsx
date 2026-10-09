@@ -14,7 +14,7 @@ import { getSchoolForm, setSchoolForm, type SchoolForm } from "./data/schoolForm
 import { acceptCookieConsent, clearAccountStudyData, clearLocalAccount, createLocalAccount, getAccount, getSavedAccounts, hasCookieConsent, hydrateRemoteProgress, hasRemoteSession, saveAccountEmail, syncProgressToServer, verifyLocalPassword, verifyPendingEmail, resendPendingEmail, requestAccessReset, completeAccessReset, startAccountEmailVerification, finishAccountEmailVerification, clearRemoteSession, type LocalAccount } from "./data/account";
 
 type Section="Dashboard"|"Lesson"|"RAT"|"CAT"|"Practice"|"Revision"|"Analytics"|"Notes"|"Calendar"|"About"|"Feedback"|"Settings";
-const sections:Section[]=["Dashboard","Lesson","RAT","CAT","Practice","Revision","Analytics","Notes","Calendar","About","Feedback","Settings"];
+const sections:Section[]=["Dashboard","Notes","Lesson","RAT","CAT","Practice","Revision","Analytics","Calendar","About","Feedback","Settings"];
 const icons:Record<Section,string>={Dashboard:"⌂",Lesson:"01",RAT:"02",CAT:"03",Practice:"04",Revision:"05",Analytics:"06",Notes:"✎",Calendar:"07",About:"08",Feedback:"09",Settings:"10"};
 
 function App(){
